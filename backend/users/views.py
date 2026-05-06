@@ -1,12 +1,15 @@
 from rest_framework import generics
-from users.serializers import RegisterSerializer
 from rest_framework.views import APIView
+from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-from users.serializers import LoginSerializer
+
+from users.serializers import LoginSerializer, UserReadSerializer, RegisterSerializer
+from core.permissions import IsAdminUser
+from users.models import User
 
 
 class LogoutView(APIView):
@@ -29,38 +32,11 @@ class LoginView(TokenObtainPairView):
     
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
-        
-        access = response.data.get("access")
-        refresh = response.data.get("refresh")
-        user = response.data.get("user")
-        print(user)
-        
         res = Response(response.data)
-        
-        res.set_cookie(
-            key="access_token",
-            value=access,
-            httponly=True,
-            samesite="None",
-            secure=True,
-            path="/"
-        )
-        
-        res.set_cookie(
-            key="refresh_token",
-            value=refresh,
-            httponly=True,
-            secure=True,
-            samesite="None",
-            path="/"
-        )
-        
-        res.set_cookie(
-            key="role",
-            value=user["role"],
-            httponly=True,
-            samesite="None",
-            secure=True,
-            path="/"
-        )
         return res
+    
+
+class ListUserView(generics.ListAPIView):
+    queryset = User.objects.all().order_by("id")
+    serializer_class = UserReadSerializer
+    permission_classes = [IsAdminUser]

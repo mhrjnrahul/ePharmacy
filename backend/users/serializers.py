@@ -1,6 +1,8 @@
 from rest_framework import serializers
-from users.models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from users.models import User
+from core.models import Role
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -14,10 +16,27 @@ class RegisterSerializer(serializers.ModelSerializer):
         return User.objects.create_user(**validated_data)
     
 
+class AdminCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "email", "first_name", "last_name", "password", "role"]
+        read_only_fields = ["id"]
+
+    def validate_role(self, value):
+        if value != Role.STAFF:
+            raise serializers.ValidationError("Only Staff role is allowed")
+        return value
+    
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
+    
+
 class UserReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "role"]
+        fields = ["id", "email", "first_name", "last_name", "role", "is_active"]
         
 
 class LoginSerializer(TokenObtainPairSerializer):

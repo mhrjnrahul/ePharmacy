@@ -4,6 +4,7 @@ from .models import Category, Manufacturer, Medicine, MedicineRelation
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
+    readonly_fields = ["id"]
     list_display = ["name", "is_active", "created_at"]
     search_fields = ["name"]
     list_filter = ["is_active"]
@@ -11,6 +12,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Manufacturer)
 class ManufacturerAdmin(admin.ModelAdmin):
+    readonly_fields = ["id"]
     list_display = ["name", "is_active", "created_at"]
     search_fields = ["name"]
     list_filter = ["is_active"]
@@ -18,6 +20,7 @@ class ManufacturerAdmin(admin.ModelAdmin):
 
 @admin.register(Medicine)
 class MedicineAdmin(admin.ModelAdmin):
+    readonly_fields = ["id"]
     list_display = [
         "name",
         "strength",
@@ -34,6 +37,7 @@ class MedicineAdmin(admin.ModelAdmin):
 
 @admin.register(MedicineRelation)
 class MedicineRelationAdmin(admin.ModelAdmin):
+    readonly_fields = ["id"]
     list_display = ["from_medicine", "to_medicine", "relation_type", "weight"]
     list_filter = ["relation_type"]
     autocomplete_fields = ["from_medicine", "to_medicine"]

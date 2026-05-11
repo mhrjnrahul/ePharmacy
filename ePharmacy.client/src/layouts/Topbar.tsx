@@ -4,7 +4,7 @@ import { useAuthStore } from "@/store/authStore"
 
 const routeTitles: Record<string, string> = {
   "/dashboard":         "Dashboard",
-  "/products":          "Products",
+  "/medicines":          "Medicines",
   "/categories":        "Categories",
   "/suppliers":         "Suppliers",
   "/customers":         "Customers",

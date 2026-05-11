@@ -9,8 +9,8 @@ import LoginPage from "@/pages/auth/LoginPage"
 import RegisterPage from "@/pages/auth/RegisterPage"
 import UnauthorizedPage from "@/pages/auth/UnauthorizedPage"
 import DashboardPage from "@/pages/dashboard/DashboardPage"
-import ProductsPage from "@/pages/products/ProductsPage"
 import CategoriesPage from "@/pages/categories/CategoriesPage"
+import MedicinesPage from "@/pages/medicine/MedicinesPage"
 
 export const router = createBrowserRouter([
   // ── Landing (standalone, no layout wrapper) ───────────────────────
@@ -50,7 +50,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: "dashboard",         element: <DashboardPage /> },
-          { path: "products",          element: <ProductsPage />  },
+          { path: "medicines", element: <MedicinesPage /> },
           { path: "categories", element: <CategoriesPage /> },
           { path: "suppliers",         element: <div style={{ padding: "24px" }}>Suppliers — coming soon</div>         },
           { path: "customers",         element: <div style={{ padding: "24px" }}>Customers — coming soon</div>         },

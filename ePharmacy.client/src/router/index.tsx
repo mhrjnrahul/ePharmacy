@@ -10,6 +10,7 @@ import RegisterPage from "@/pages/auth/RegisterPage"
 import UnauthorizedPage from "@/pages/auth/UnauthorizedPage"
 import DashboardPage from "@/pages/dashboard/DashboardPage"
 import ProductsPage from "@/pages/products/ProductsPage"
+import CategoriesPage from "@/pages/categories/CategoriesPage"
 
 export const router = createBrowserRouter([
   // ── Landing (standalone, no layout wrapper) ───────────────────────
@@ -50,7 +51,7 @@ export const router = createBrowserRouter([
         children: [
           { path: "dashboard",         element: <DashboardPage /> },
           { path: "products",          element: <ProductsPage />  },
-          { path: "categories",        element: <div style={{ padding: "24px" }}>Categories — coming soon</div>        },
+          { path: "categories", element: <CategoriesPage /> },
           { path: "suppliers",         element: <div style={{ padding: "24px" }}>Suppliers — coming soon</div>         },
           { path: "customers",         element: <div style={{ padding: "24px" }}>Customers — coming soon</div>         },
           { path: "sales",             element: <div style={{ padding: "24px" }}>Sales — coming soon</div>             },

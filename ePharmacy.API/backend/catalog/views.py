@@ -10,6 +10,7 @@ from .serializers import (
     MedicineDetailSerializer,
     MedicineRelationSerializer,
 )
+from core.models import Role
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
@@ -28,7 +29,7 @@ class CategoryListCreateView(generics.ListCreateAPIView):
         qs = Category.objects.all()
         if not (
             self.request.user.is_authenticated
-            and self.request.user.role in ("admin", "staff")
+            and self.request.user.role in (Role.ADMIN, Role.STAFF)
         ):
             qs = qs.filter(is_active=True)
         return qs
@@ -61,7 +62,7 @@ class ManufacturerListCreateView(generics.ListCreateAPIView):
         qs = Manufacturer.objects.all()
         if not (
             self.request.user.is_authenticated
-            and self.request.user.role in ("admin", "staff")
+            and self.request.user.role in (Role.ADMIN, Role.STAFF)
         ):
             qs = qs.filter(is_active=True)
         return qs
@@ -113,7 +114,7 @@ class MedicineListCreateView(generics.ListCreateAPIView):
         # Public users and customers only see active medicines
         if not (
             self.request.user.is_authenticated
-            and self.request.user.role in ("admin", "staff")
+            and self.request.user.role in (Role.ADMIN, Role.STAFF)
         ):
             qs = qs.filter(is_active=True)
         return qs
@@ -133,7 +134,7 @@ class MedicineDetailView(generics.RetrieveUpdateDestroyAPIView):
         qs = Medicine.objects.select_related("category", "manufacturer")
         if not (
             self.request.user.is_authenticated
-            and self.request.user.role in ("admin", "staff")
+            and self.request.user.role in (Role.ADMIN, Role.STAFF)
         ):
             qs = qs.filter(is_active=True)
         return qs

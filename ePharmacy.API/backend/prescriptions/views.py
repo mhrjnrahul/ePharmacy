@@ -13,6 +13,7 @@ from .serializers import (
     PrescriptionRejectSerializer,
     PrescriptionItemSerializer,
 )
+from core.models import Role
 
 
 class PrescriptionListCreateView(generics.ListCreateAPIView):
@@ -39,7 +40,7 @@ class PrescriptionListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ("admin", "staff"):
+        if user.role in (Role.ADMIN, Role.STAFF):
             return Prescription.objects.select_related("customer", "reviewed_by").all()
         # Customers only see their own
         return Prescription.objects.filter(customer=user).select_related("reviewed_by")
@@ -175,7 +176,7 @@ class PrescriptionItemListView(generics.ListAPIView):
             prescription_id=self.kwargs["pk"]
         ).select_related("medicine")
 
-        if user.role not in ("admin", "staff"):
+        if user.role not in (Role.ADMIN, Role.STAFF):
             qs = qs.filter(prescription__customer=user)
 
         return qs

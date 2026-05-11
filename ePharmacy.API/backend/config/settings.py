@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "inventory",
     "prescriptions",
     "orders",
+    "payment",
 ]
 
 MIDDLEWARE = [
@@ -164,3 +165,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
 ]
+
+# esewa
+ESEWA_PRODUCT_CODE = "EPAYTEST"
+ESEWA_SECRET_KEY = "8gBm/:&EnhH.1/q"
+ESEWA_SUCCESS_URL = "http://localhost:3000/payment/success"
+ESEWA_FAILURE_URL = "http://localhost:3000/payment/failure"
+
+# Sandbox/Test URLs
+ESEWA_PAYMENT_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
+ESEWA_VERIFY_URL = "https://rc.esewa.com.np/api/epay/transaction/status/"

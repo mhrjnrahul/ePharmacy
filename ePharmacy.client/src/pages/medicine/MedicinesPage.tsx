@@ -9,7 +9,7 @@ import type { MedicineListItem, Medicine, CreateMedicineRequest, DosageForm } fr
 const green = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857" }
 const gray  = { 50: "#f9fafb", 100: "#f3f4f6", 200: "#e5e7eb", 400: "#9ca3af", 500: "#6b7280", 700: "#374151", 900: "#111827" }
 const red   = { 50: "#fef2f2", 100: "#fee2e2", 600: "#dc2626", 700: "#b91c1c" }
-const amber = { 50: "#fffbeb", 100: "#fef3c7", 700: "#b45309" }
+const amber = { 50: "#fffbeb", 700: "#b45309" }
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "8px 12px", border: `1px solid ${gray[200]}`,
@@ -27,7 +27,6 @@ const DOSAGE_FORMS: { value: DosageForm; label: string }[] = [
   { value: "inhaler",   label: "Inhaler"   },
 ]
 
-// ── helpers ───────────────────────────────────────────────────────────────────
 const dosageBadgeColor = (form: DosageForm) => {
   const map: Record<DosageForm, { bg: string; color: string }> = {
     tablet:    { bg: "#eff6ff", color: "#1d4ed8" },
@@ -55,14 +54,14 @@ const MedicineModal = ({ editing, onClose }: ModalProps) => {
   const isPending = create.isPending || update.isPending
 
   const [form, setForm] = useState<CreateMedicineRequest>({
-    name:                   editing?.name                   ?? "",
-    description:            editing?.description            ?? "",
-    category:               editing?.category               ?? "",
-    manufacturer:           editing?.manufacturer           ?? "",
-    requires_prescription:  editing?.requires_prescription  ?? false,
-    dosage_form:            editing?.dosage_form            ?? "tablet",
-    strength:               editing?.strength               ?? "",
-    is_active:              editing?.is_active              ?? true,
+    name:                  editing?.name                  ?? "",
+    description:           editing?.description           ?? "",
+    category:              editing?.category              ?? "",
+    manufacturer:          editing?.manufacturer          ?? "",
+    requires_prescription: editing?.requires_prescription ?? false,
+    dosage_form:           editing?.dosage_form           ?? "tablet",
+    strength:              editing?.strength              ?? "",
+    is_active:             editing?.is_active             ?? true,
   })
   const [error, setError] = useState("")
 
@@ -70,10 +69,10 @@ const MedicineModal = ({ editing, onClose }: ModalProps) => {
     setForm(f => ({ ...f, [k]: v }))
 
   const handleSubmit = async () => {
-    if (!form.name.trim())         { setError("Name is required.");         return }
-    if (!form.strength.trim())     { setError("Strength is required.");     return }
-    if (!form.category)            { setError("Category is required.");     return }
-    if (!form.manufacturer)        { setError("Manufacturer is required."); return }
+    if (!form.name.trim())     { setError("Name is required.");         return }
+    if (!form.strength.trim()) { setError("Strength is required.");     return }
+    if (!form.category)        { setError("Category is required.");     return }
+    if (!form.manufacturer)    { setError("Manufacturer is required."); return }
     setError("")
     try {
       if (editing) await update.mutateAsync({ id: editing.id, data: form })
@@ -112,32 +111,19 @@ const MedicineModal = ({ editing, onClose }: ModalProps) => {
             <input style={inputStyle} value={form.strength} onChange={e => set("strength", e.target.value)} placeholder="e.g. 500mg" />
           </div>
 
-          {/* Dosage form + Prescription row */}
+          {/* Dosage form + Category */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Dosage Form *</label>
-              <select
-                style={{ ...inputStyle, cursor: "pointer" }}
-                value={form.dosage_form}
-                onChange={e => set("dosage_form", e.target.value as DosageForm)}
-              >
-                {DOSAGE_FORMS.map(d => (
-                  <option key={d.value} value={d.value}>{d.label}</option>
-                ))}
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={form.dosage_form} onChange={e => set("dosage_form", e.target.value as DosageForm)}>
+                {DOSAGE_FORMS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
             </div>
-
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Category *</label>
-              <select
-                style={{ ...inputStyle, cursor: "pointer" }}
-                value={form.category}
-                onChange={e => set("category", e.target.value)}
-              >
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={form.category} onChange={e => set("category", e.target.value)}>
                 <option value="">Select category</option>
-                {categories.filter(c => c.is_active).map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+                {categories.filter(c => c.is_active).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
           </div>
@@ -145,15 +131,9 @@ const MedicineModal = ({ editing, onClose }: ModalProps) => {
           {/* Manufacturer */}
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Manufacturer *</label>
-            <select
-              style={{ ...inputStyle, cursor: "pointer" }}
-              value={form.manufacturer}
-              onChange={e => set("manufacturer", e.target.value)}
-            >
+            <select style={{ ...inputStyle, cursor: "pointer" }} value={form.manufacturer} onChange={e => set("manufacturer", e.target.value)}>
               <option value="">Select manufacturer</option>
-              {manufacturers.filter(m => m.is_active).map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
+              {manufacturers.filter(m => m.is_active).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
           </div>
 
@@ -168,33 +148,18 @@ const MedicineModal = ({ editing, onClose }: ModalProps) => {
             />
           </div>
 
-          {/* Toggles row */}
+          {/* Toggles */}
           <div style={{ display: "flex", gap: "24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input
-                type="checkbox" id="requires_prescription"
-                checked={form.requires_prescription}
-                onChange={e => set("requires_prescription", e.target.checked)}
-                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: green[600] }}
-              />
-              <label htmlFor="requires_prescription" style={{ fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>
-                Requires Prescription
-              </label>
+              <input type="checkbox" id="requires_prescription" checked={form.requires_prescription} onChange={e => set("requires_prescription", e.target.checked)} style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: green[600] }} />
+              <label htmlFor="requires_prescription" style={{ fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>Requires Prescription</label>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input
-                type="checkbox" id="med_is_active"
-                checked={form.is_active}
-                onChange={e => set("is_active", e.target.checked)}
-                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: green[600] }}
-              />
-              <label htmlFor="med_is_active" style={{ fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>
-                Active
-              </label>
+              <input type="checkbox" id="med_is_active" checked={form.is_active} onChange={e => set("is_active", e.target.checked)} style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: green[600] }} />
+              <label htmlFor="med_is_active" style={{ fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>Active</label>
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div style={{ padding: "10px 12px", backgroundColor: red[50], borderRadius: "8px", border: `1px solid ${red[100]}` }}>
               <p style={{ fontSize: "13px", color: red[700], margin: 0 }}>{error}</p>
@@ -226,9 +191,10 @@ interface DeleteModalProps {
   onConfirm: () => void
   onClose: () => void
   isDeleting: boolean
+  error: string
 }
 
-const DeleteModal = ({ medicine, onConfirm, onClose, isDeleting }: DeleteModalProps) => (
+const DeleteModal = ({ medicine, onConfirm, onClose, isDeleting, error }: DeleteModalProps) => (
   <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
     <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px", width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
@@ -237,9 +203,17 @@ const DeleteModal = ({ medicine, onConfirm, onClose, isDeleting }: DeleteModalPr
           <X size={18} />
         </button>
       </div>
-      <p style={{ fontSize: "13px", color: gray[500], margin: "0 0 24px 0", lineHeight: 1.6 }}>
+
+      <p style={{ fontSize: "13px", color: gray[500], margin: "0 0 16px 0", lineHeight: 1.6 }}>
         Are you sure you want to delete <strong style={{ color: gray[900] }}>{medicine.name} {medicine.strength}</strong>? This action cannot be undone.
       </p>
+
+      {error && (
+        <div style={{ padding: "10px 12px", backgroundColor: red[50], borderRadius: "8px", border: `1px solid ${red[100]}`, marginBottom: "16px" }}>
+          <p style={{ fontSize: "13px", color: red[700], margin: 0 }}>{error}</p>
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
         <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: "8px", border: `1px solid ${gray[200]}`, backgroundColor: "#fff", fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>
           Cancel
@@ -256,40 +230,56 @@ const DeleteModal = ({ medicine, onConfirm, onClose, isDeleting }: DeleteModalPr
   </div>
 )
 
+// ── edit loading overlay ──────────────────────────────────────────────────────
+const EditLoadingModal = () => (
+  <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+    <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "32px 40px", display: "flex", alignItems: "center", gap: "12px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+      <Loader2 size={18} color={green[600]} style={{ animation: "spin 1s linear infinite" }} />
+      <span style={{ fontSize: "14px", color: gray[700] }}>Loading medicine…</span>
+    </div>
+  </div>
+)
+
 // ── page ──────────────────────────────────────────────────────────────────────
 const MedicinesPage = () => {
   const { data: medicines = [], isLoading, isError } = useMedicines()
   const deleteMedicine = useDeleteMedicine()
-  const { data: _cats } = useCategories()        // prefetch for modal
-  const { data: _mfrs } = useManufacturers()     // prefetch for modal
+
+  // prefetch for modal dropdowns
+  useCategories()
+  useManufacturers()
 
   const [modalOpen,    setModalOpen   ] = useState(false)
   const [editingId,    setEditingId   ] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<MedicineListItem | null>(null)
   const [isDeleting,   setIsDeleting  ] = useState(false)
-  const [loadingEditId, setLoadingEditId] = useState<string | null>(null)
+  const [deleteError,  setDeleteError ] = useState("")
 
-  const { data: medicineDetail } = useMedicineDetail(editingId)
+  // fetch detail only when editing
+  const { data: medicineDetail, isLoading: isLoadingDetail } = useMedicineDetail(editingId)
 
   const openAdd = () => { setEditingId(null); setModalOpen(true) }
 
-  const openEdit = async (id: string) => {
-    setLoadingEditId(id)
+  const openEdit = (id: string) => {
     setEditingId(id)
     setModalOpen(true)
-    setLoadingEditId(null)
   }
 
-  const closeModal = () => { setModalOpen(false); setEditingId(null); }
+  const closeModal = () => { setModalOpen(false); setEditingId(null) }
+
+  const openDelete = (m: MedicineListItem) => { setDeleteTarget(m); setDeleteError("") }
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return
     setIsDeleting(true)
+    setDeleteError("")
     try {
       await deleteMedicine.mutateAsync(deleteTarget.id)
       setDeleteTarget(null)
-    } catch {
-      // handle later
+    } catch (err: any) {
+      setDeleteError(
+        err?.response?.data?.detail ?? "Cannot delete this medicine. Please try again."
+      )
     } finally {
       setIsDeleting(false)
     }
@@ -307,6 +297,9 @@ const MedicinesPage = () => {
       <p style={{ fontSize: "14px", color: red[700], margin: 0 }}>Failed to load medicines. Check your connection and try again.</p>
     </div>
   )
+
+  // show loading overlay while fetching detail for edit
+  const showEditLoader = modalOpen && !!editingId && isLoadingDetail
 
   return (
     <div>
@@ -360,7 +353,7 @@ const MedicinesPage = () => {
                     onMouseEnter={e => (e.currentTarget.style.backgroundColor = gray[50])}
                     onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
                   >
-                    {/* Medicine name + strength */}
+                    {/* Name + strength */}
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: green[50], display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -390,13 +383,12 @@ const MedicinesPage = () => {
                       <span style={{ fontSize: "13px", color: gray[500] }}>{med.manufacturer_name}</span>
                     </td>
 
-                    {/* Requires prescription */}
+                    {/* Rx */}
                     <td style={{ padding: "12px 16px" }}>
-                      {med.requires_prescription ? (
-                        <span style={{ fontSize: "11px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", backgroundColor: amber[50], color: amber[700] }}>Rx</span>
-                      ) : (
-                        <span style={{ fontSize: "12px", color: gray[400] }}>OTC</span>
-                      )}
+                      {med.requires_prescription
+                        ? <span style={{ fontSize: "11px", fontWeight: 600, padding: "3px 8px", borderRadius: "20px", backgroundColor: amber[50], color: amber[700] }}>Rx</span>
+                        : <span style={{ fontSize: "12px", color: gray[400] }}>OTC</span>
+                      }
                     </td>
 
                     {/* Status */}
@@ -410,18 +402,15 @@ const MedicinesPage = () => {
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px", justifyContent: "flex-end" }}>
                         <button
-                          onClick={() => openEdit(med.id)}
-                          disabled={loadingEditId === med.id}
-                          title="Edit"
+                          onClick={() => openEdit(med.id)} title="Edit"
                           style={{ padding: "6px", borderRadius: "6px", border: "none", backgroundColor: "transparent", color: gray[400], cursor: "pointer", display: "flex" }}
                           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = gray[100]; (e.currentTarget as HTMLButtonElement).style.color = gray[700] }}
                           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = gray[400] }}
                         >
-                          {loadingEditId === med.id ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Pencil size={14} />}
+                          <Pencil size={14} />
                         </button>
                         <button
-                          onClick={() => setDeleteTarget(med)}
-                          title="Delete"
+                          onClick={() => openDelete(med)} title="Delete"
                           style={{ padding: "6px", borderRadius: "6px", border: "none", backgroundColor: "transparent", color: gray[400], cursor: "pointer", display: "flex" }}
                           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = red[50]; (e.currentTarget as HTMLButtonElement).style.color = red[600] }}
                           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = gray[400] }}
@@ -438,8 +427,11 @@ const MedicinesPage = () => {
         </div>
       )}
 
-      {/* Add / Edit modal */}
-      {modalOpen && (
+      {/* Edit loading overlay — shown while fetching detail */}
+      {showEditLoader && <EditLoadingModal />}
+
+      {/* Add / Edit modal — only shown once detail is ready (or adding new) */}
+      {modalOpen && !showEditLoader && (
         <MedicineModal
           editing={editingId ? (medicineDetail ?? null) : null}
           onClose={closeModal}
@@ -453,6 +445,7 @@ const MedicinesPage = () => {
           onConfirm={handleDeleteConfirm}
           onClose={() => setDeleteTarget(null)}
           isDeleting={isDeleting}
+          error={deleteError}
         />
       )}
     </div>

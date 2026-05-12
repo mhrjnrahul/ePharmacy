@@ -6,7 +6,7 @@ const routeTitles: Record<string, string> = {
   "/dashboard":         "Dashboard",
   "/medicines":          "Medicines",
   "/categories":        "Categories",
-  "/suppliers":         "Suppliers",
+  "/manufacturers":         "Manufacturers",
   "/customers":         "Customers",
   "/sales":             "Sales",
   "/purchase-orders":   "Purchase Orders",

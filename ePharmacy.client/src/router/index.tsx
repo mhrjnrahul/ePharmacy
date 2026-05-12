@@ -11,6 +11,7 @@ import UnauthorizedPage from "@/pages/auth/UnauthorizedPage"
 import DashboardPage from "@/pages/dashboard/DashboardPage"
 import CategoriesPage from "@/pages/categories/CategoriesPage"
 import MedicinesPage from "@/pages/medicine/MedicinesPage"
+import ManufacturersPage from "@/pages/manufacturers/ManufacturersPage"
 
 export const router = createBrowserRouter([
   // ── Landing (standalone, no layout wrapper) ───────────────────────
@@ -52,7 +53,7 @@ export const router = createBrowserRouter([
           { path: "dashboard",         element: <DashboardPage /> },
           { path: "medicines", element: <MedicinesPage /> },
           { path: "categories", element: <CategoriesPage /> },
-          { path: "suppliers",         element: <div style={{ padding: "24px" }}>Suppliers — coming soon</div>         },
+          { path: "manufacturers",         element: <ManufacturersPage />         },
           { path: "customers",         element: <div style={{ padding: "24px" }}>Customers — coming soon</div>         },
           { path: "sales",             element: <div style={{ padding: "24px" }}>Sales — coming soon</div>             },
           { path: "purchase-orders",   element: <div style={{ padding: "24px" }}>Purchase Orders — coming soon</div>   },

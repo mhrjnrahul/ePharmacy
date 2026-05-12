@@ -1,4 +1,7 @@
 from rest_framework import generics, filters
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
 from core.permissions import IsAdminOrStaff, IsAdminOrStaffOrReadOnly
@@ -11,6 +14,7 @@ from .serializers import (
     MedicineRelationSerializer,
 )
 from core.models import Role
+from .recommendations import get_recommendations, get_cart_recommendations
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
@@ -178,3 +182,80 @@ class MedicineRelationDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MedicineRelationSerializer
     permission_classes = [IsAdminOrStaff]
     queryset = MedicineRelation.objects.select_related("from_medicine", "to_medicine")
+
+
+class MedicineRecommendationView(APIView):
+    """
+    GET /api/catalog/medicines/<id>/recommendations/
+    Public. Returns up to 8 recommended medicines for a given medicine detail page.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        try:
+            medicine = Medicine.objects.get(pk=pk, is_active=True)
+        except Medicine.DoesNotExist:
+            return Response({"detail": "Medicine not found."}, status=404)
+
+        recommended_ids = get_recommendations(str(pk), top_n=8)
+        if not recommended_ids:
+            return Response({"medicine": medicine.name, "results": []})
+
+        medicines = Medicine.objects.filter(
+            id__in=recommended_ids, is_active=True
+        ).select_related("category", "manufacturer")
+
+        medicine_map = {str(m.id): m for m in medicines}
+        ordered = [medicine_map[mid] for mid in recommended_ids if mid in medicine_map]
+
+        return Response(
+            {
+                "medicine": medicine.name,
+                "results": MedicineListSerializer(
+                    ordered, many=True, context={"request": request}
+                ).data,
+            }
+        )
+
+
+class CartRecommendationView(APIView):
+    """
+    GET /api/catalog/recommendations/cart/
+    Requires login. Returns up to 6 recommendations based on current cart contents.
+    Used on cart page: "You might also need..."
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from orders.models import CartItem
+
+        cart_medicine_ids = list(
+            CartItem.objects.filter(cart__user=request.user).values_list(
+                "medicine_id", flat=True
+            )
+        )
+
+        if not cart_medicine_ids:
+            return Response({"results": []})
+
+        recommended_ids = get_cart_recommendations(cart_medicine_ids, top_n=6)
+        if not recommended_ids:
+            return Response({"results": []})
+
+        medicines = Medicine.objects.filter(
+            id__in=recommended_ids, is_active=True
+        ).select_related("category", "manufacturer")
+
+        medicine_map = {str(m.id): m for m in medicines}
+        ordered = [medicine_map[mid] for mid in recommended_ids if mid in medicine_map]
+
+        return Response(
+            {
+                "based_on_cart_items": len(cart_medicine_ids),
+                "results": MedicineListSerializer(
+                    ordered, many=True, context={"request": request}
+                ).data,
+            }
+        )

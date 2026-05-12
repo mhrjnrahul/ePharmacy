@@ -8,6 +8,8 @@ from .views import (
     MedicineDetailView,
     MedicineRelationListCreateView,
     MedicineRelationDetailView,
+    MedicineRecommendationView,
+    CartRecommendationView,
 )
 
 urlpatterns = [
@@ -32,5 +34,15 @@ urlpatterns = [
         "relations/<uuid:pk>/",
         MedicineRelationDetailView.as_view(),
         name="medicine-relation-detail",
+    ),
+    path(
+        "medicines/<uuid:pk>/recommendations/",
+        MedicineRecommendationView.as_view(),
+        name="medicine-recommendations",
+    ),
+    path(
+        "recommendations/cart/",
+        CartRecommendationView.as_view(),
+        name="cart-recommendations",
     ),
 ]

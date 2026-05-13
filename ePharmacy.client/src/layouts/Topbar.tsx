@@ -9,11 +9,12 @@ const routeTitles: Record<string, string> = {
   "/manufacturers":         "Manufacturers",
   "/customers":         "Customers",
   "/sales":             "Sales",
-  "/purchase-orders":   "Purchase Orders",
+  "/purchase-orders":   "Inventory",
   "/stock-adjustments": "Stock Adjustments",
   "/reports":           "Reports",
   "/users":             "User Management",
   "/logs":              "System Logs",
+  "/orders":            "Orders",
 }
 
 const Topbar = () => {

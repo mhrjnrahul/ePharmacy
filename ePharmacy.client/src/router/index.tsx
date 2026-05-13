@@ -8,10 +8,14 @@ import LandingPage from "@/pages/landing/LandingPage"
 import LoginPage from "@/pages/auth/LoginPage"
 import RegisterPage from "@/pages/auth/RegisterPage"
 import UnauthorizedPage from "@/pages/auth/UnauthorizedPage"
+
 import DashboardPage from "@/pages/dashboard/DashboardPage"
 import CategoriesPage from "@/pages/categories/CategoriesPage"
 import MedicinesPage from "@/pages/medicine/MedicinesPage"
 import ManufacturersPage from "@/pages/manufacturers/ManufacturersPage"
+import InventoryPage from "@/pages/inventory/InventoryPage"
+import StockAdjustmentsPage from "@/pages/stock-adjustments/Stockadjustmentspage"
+import OrdersPage from "@/pages/orders/OrdersPage"
 
 export const router = createBrowserRouter([
   // ── Landing (standalone, no layout wrapper) ───────────────────────
@@ -56,8 +60,8 @@ export const router = createBrowserRouter([
           { path: "manufacturers",         element: <ManufacturersPage />         },
           { path: "customers",         element: <div style={{ padding: "24px" }}>Customers — coming soon</div>         },
           { path: "sales",             element: <div style={{ padding: "24px" }}>Sales — coming soon</div>             },
-          { path: "purchase-orders",   element: <div style={{ padding: "24px" }}>Purchase Orders — coming soon</div>   },
-          { path: "stock-adjustments", element: <div style={{ padding: "24px" }}>Stock Adjustments — coming soon</div> },
+          { path: "purchase-orders",   element: <InventoryPage />   },
+          { path: "stock-adjustments", element: <StockAdjustmentsPage /> },
           { path: "reports",           element: <div style={{ padding: "24px" }}>Reports — coming soon</div>           },
         ],
       },
@@ -71,7 +75,7 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: "orders", element: <div style={{ padding: "24px" }}>Orders — coming soon</div> },
+          { path: "orders", element: <OrdersPage /> },
         ],
       },
     ],

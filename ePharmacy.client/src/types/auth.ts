@@ -23,8 +23,9 @@ export interface RegisterRequest {
 
 export interface User {
   id: string        
-  email?: string    
+  email: string    
   first_name: string
   last_name: string
   role: "ADMIN" | "STAFF" | "CUSTOMER"
+  is_active? : boolean
 }

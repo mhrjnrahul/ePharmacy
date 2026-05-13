@@ -47,7 +47,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Operations",
     items: [
       { label: "Sales",             path: "/sales",             icon: ShoppingCart,  roles: ["ADMIN", "STAFF"] },
-      { label: "Purchase Orders",   path: "/purchase-orders",   icon: ClipboardList, roles: ["ADMIN", "STAFF"] },
+      { label: "Inventory", path: "/purchase-orders", icon: ClipboardList, roles: ["ADMIN", "STAFF"] },
       { label: "Stock Adjustments", path: "/stock-adjustments", icon: ArrowLeftRight,roles: ["ADMIN", "STAFF"] },
     ],
   },

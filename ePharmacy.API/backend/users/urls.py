@@ -17,6 +17,6 @@ urlpatterns = [
     path("refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("list/", ListUserView.as_view(), name="list"),
-    path("delete/<int:pk>/", DeleteUserView.as_view(), name="delete"),
-    path("restore/<int:pk>/", RestoreUserView.as_view(), name="restore"),
+    path("delete/<uuid:pk>/", DeleteUserView.as_view(), name="delete"),
+    path("restore/<uuid:pk>/", RestoreUserView.as_view(), name="restore"),
 ]

@@ -15,6 +15,7 @@ import MedicinesPage from "@/pages/medicine/MedicinesPage"
 import ManufacturersPage from "@/pages/manufacturers/ManufacturersPage"
 import InventoryPage from "@/pages/inventory/InventoryPage"
 import StockAdjustmentsPage from "@/pages/stock-adjustments/Stockadjustmentspage"
+import UserManagementPage from "@/pages/user-management/UserManagementPage"
 import OrdersPage from "@/pages/orders/OrdersPage"
 
 export const router = createBrowserRouter([
@@ -40,7 +41,7 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: "users", element: <div style={{ padding: "24px" }}>User Management — coming soon</div> },
+          { path: "users", element: <UserManagementPage /> },
           { path: "logs",  element: <div style={{ padding: "24px" }}>System Logs — coming soon</div>    },
         ],
       },

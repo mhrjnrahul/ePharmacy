@@ -29,3 +29,20 @@ export interface User {
   role: "ADMIN" | "STAFF" | "CUSTOMER"
   is_active? : boolean
 }
+
+export interface UserRead {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  role: "ADMIN" | "STAFF" | "CUSTOMER"
+  is_active: boolean
+}
+
+export interface AdminCreateRequest {
+  email: string
+  first_name: string
+  last_name: string
+  password: string
+  role: "ADMIN" | "STAFF" | "CUSTOMER"
+}

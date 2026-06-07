@@ -21,7 +21,7 @@ const LoginPage = () => {
 
       setUser(data.user);
 
-      navigate(data.user.role === "CUSTOMER" ? "/orders" : "/dashboard");
+      navigate(data.user.role === "CUSTOMER" ? "/" : "/dashboard");
     },
     onError: () => setError("Invalid email or password."),
   });

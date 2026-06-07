@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import RootLayout from "@/layouts/RootLayout"
 import AppLayout from "@/layouts/AppLayout"
 import AuthLayout from "@/layouts/AuthLayout"
 
@@ -17,8 +18,15 @@ import InventoryPage from "@/pages/inventory/InventoryPage"
 import StockAdjustmentsPage from "@/pages/stock-adjustments/Stockadjustmentspage"
 import UserManagementPage from "@/pages/user-management/UserManagementPage"
 import OrdersPage from "@/pages/orders/OrdersPage"
+import CustomersPage from "@/pages/customers/CustomersPage"
+import CheckoutPage from "@/pages/checkout/CheckoutPage"
+import PaymentSuccessPage from "@/pages/payment/PaymentSuccessPage"
 
 export const router = createBrowserRouter([
+  {
+    element: <RootLayout />,
+    children: [
+
   // ── Landing (standalone, no layout wrapper) ───────────────────────
   { path: "/", element: <LandingPage /> },
 
@@ -59,7 +67,7 @@ export const router = createBrowserRouter([
           { path: "medicines", element: <MedicinesPage /> },
           { path: "categories", element: <CategoriesPage /> },
           { path: "manufacturers",         element: <ManufacturersPage />         },
-          { path: "customers",         element: <div style={{ padding: "24px" }}>Customers — coming soon</div>         },
+          { path: "customers",         element: <CustomersPage />         },
           { path: "sales",             element: <div style={{ padding: "24px" }}>Sales — coming soon</div>             },
           { path: "purchase-orders",   element: <InventoryPage />   },
           { path: "stock-adjustments", element: <StockAdjustmentsPage /> },
@@ -79,9 +87,15 @@ export const router = createBrowserRouter([
           { path: "orders", element: <OrdersPage /> },
         ],
       },
+      // Standalone pages (no AppLayout sidebar)
+      { path: "checkout",        element: <CheckoutPage />       },
+      { path: "payment/success", element: <PaymentSuccessPage /> },
     ],
   },
 
   // ── Catch all ─────────────────────────────────────────────────────
   { path: "*", element: <Navigate to="/" replace /> },
+
+  ] // end RootLayout children
+  },
 ])

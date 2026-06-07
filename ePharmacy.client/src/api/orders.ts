@@ -1,7 +1,11 @@
 import { api } from "./axios"
-import type { OrderList, OrderDetail } from "@/types/order"
+import type { OrderList, OrderDetail, CheckoutResponse } from "@/types/order"
 
 export const ordersApi = {
+  checkout: (data: { delivery_address: string }) =>
+    api.post<CheckoutResponse>("/api/orders/checkout/", data).then(r => r.data),
+
+
   getAll: (params?: { status?: string }) =>
     api.get<OrderList[]>("/api/orders/", { params }).then(r => r.data),
 

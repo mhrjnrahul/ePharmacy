@@ -2,10 +2,13 @@ from rest_framework import generics, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.db.models import Prefetch
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 
 from core.permissions import IsAdminOrStaff, IsAdminOrStaffOrReadOnly
 from .models import Category, Manufacturer, Medicine, MedicineRelation
+from inventory.models import Batch
 from .serializers import (
     CategorySerializer,
     ManufacturerSerializer,
@@ -15,6 +18,28 @@ from .serializers import (
 )
 from core.models import Role
 from .recommendations import get_recommendations, get_cart_recommendations
+
+
+def _medicine_with_pricing_queryset():
+    today = timezone.now().date()
+    priced_batches_qs = (
+        Batch.objects.filter(
+            is_active=True,
+            expiry_date__gt=today,
+            inventory__quantity_available__gt=0,
+        )
+        .select_related("inventory")
+        .order_by("expiry_date")
+    )
+    return Medicine.objects.select_related(
+        "category", "manufacturer"
+    ).prefetch_related(
+        Prefetch(
+            "batches",
+            queryset=priced_batches_qs,
+            to_attr="priced_batches",
+        )
+    )
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
@@ -114,7 +139,7 @@ class MedicineListCreateView(generics.ListCreateAPIView):
         return MedicineListSerializer
 
     def get_queryset(self):
-        qs = Medicine.objects.select_related("category", "manufacturer")
+        qs = _medicine_with_pricing_queryset()
         # Public users and customers only see active medicines
         if not (
             self.request.user.is_authenticated
@@ -128,14 +153,15 @@ class MedicineDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     GET    /api/catalog/medicines/<id>/  — public
     PUT    /api/catalog/medicines/<id>/  — admin/staff only
-    DELETE /api/catalog/medicines/<id>/  — admin/staff only (sets is_active=False)
+    DELETE /api/catalog/medicines/<id>/  — admin/staff only
+                                              (sets is_active=False)
     """
 
     serializer_class = MedicineDetailSerializer
     permission_classes = [IsAdminOrStaffOrReadOnly]
 
     def get_queryset(self):
-        qs = Medicine.objects.select_related("category", "manufacturer")
+        qs = _medicine_with_pricing_queryset()
         if not (
             self.request.user.is_authenticated
             and self.request.user.role in (Role.ADMIN, Role.STAFF)
@@ -181,13 +207,16 @@ class MedicineRelationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     serializer_class = MedicineRelationSerializer
     permission_classes = [IsAdminOrStaff]
-    queryset = MedicineRelation.objects.select_related("from_medicine", "to_medicine")
+    queryset = MedicineRelation.objects.select_related(
+        "from_medicine", "to_medicine"
+    )
 
 
 class MedicineRecommendationView(APIView):
     """
     GET /api/catalog/medicines/<id>/recommendations/
-    Public. Returns up to 8 recommended medicines for a given medicine detail page.
+    Public. Returns up to 8 recommended medicines
+    for a given medicine detail page.
     """
 
     permission_classes = [AllowAny]
@@ -202,12 +231,16 @@ class MedicineRecommendationView(APIView):
         if not recommended_ids:
             return Response({"medicine": medicine.name, "results": []})
 
-        medicines = Medicine.objects.filter(
+        medicines = _medicine_with_pricing_queryset().filter(
             id__in=recommended_ids, is_active=True
-        ).select_related("category", "manufacturer")
+        )
 
         medicine_map = {str(m.id): m for m in medicines}
-        ordered = [medicine_map[mid] for mid in recommended_ids if mid in medicine_map]
+        ordered = [
+            medicine_map[mid]
+            for mid in recommended_ids
+            if mid in medicine_map
+        ]
 
         return Response(
             {
@@ -222,7 +255,8 @@ class MedicineRecommendationView(APIView):
 class CartRecommendationView(APIView):
     """
     GET /api/catalog/recommendations/cart/
-    Requires login. Returns up to 6 recommendations based on current cart contents.
+    Requires login. Returns up to 6 recommendations
+    based on current cart contents.
     Used on cart page: "You might also need..."
     """
 
@@ -244,12 +278,16 @@ class CartRecommendationView(APIView):
         if not recommended_ids:
             return Response({"results": []})
 
-        medicines = Medicine.objects.filter(
+        medicines = _medicine_with_pricing_queryset().filter(
             id__in=recommended_ids, is_active=True
-        ).select_related("category", "manufacturer")
+        )
 
         medicine_map = {str(m.id): m for m in medicines}
-        ordered = [medicine_map[mid] for mid in recommended_ids if mid in medicine_map]
+        ordered = [
+            medicine_map[mid]
+            for mid in recommended_ids
+            if mid in medicine_map
+        ]
 
         return Response(
             {

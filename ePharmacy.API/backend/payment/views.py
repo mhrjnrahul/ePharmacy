@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+from core.models import Role
 from core.permissions import IsAdminOrStaff
 from orders.models import Order
 from .models import Payment
@@ -184,7 +185,7 @@ class PaymentDetailView(APIView):
             )
 
         user = request.user
-        if user.role not in ("admin", "staff") and payment.order.user != user:
+        if user.role not in (Role.ADMIN, Role.STAFF) and payment.order.user != user:
             return Response(
                 {"detail": "No payment found for this order."},
                 status=status.HTTP_404_NOT_FOUND,

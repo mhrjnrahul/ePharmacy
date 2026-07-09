@@ -11,6 +11,8 @@ from users.serializers import (
     UserReadSerializer,
     RegisterSerializer,
     AdminCreateSerializer,
+    MeSerializer,
+    ChangePasswordSerializer,
 )
 from core.permissions import IsAdminUser
 from users.models import User
@@ -44,6 +46,36 @@ class LoginView(TokenObtainPairView):
         response = super().post(request, *args, **kwargs)
         res = Response(response.data)
         return res
+
+
+class MeView(generics.RetrieveUpdateAPIView):
+    """
+    GET   /api/auth/me/  — current user's profile
+    PATCH /api/auth/me/  — update own first_name / last_name
+    """
+
+    serializer_class = MeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+
+class ChangePasswordView(APIView):
+    """
+    POST /api/auth/change-password/
+    Body: { "old_password": "...", "new_password": "..." }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Password changed successfully."})
 
 
 class StaffRegisterView(generics.CreateAPIView):

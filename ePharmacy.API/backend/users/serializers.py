@@ -37,6 +37,38 @@ class UserReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "email", "first_name", "last_name", "role", "is_active"]
+
+
+class MeSerializer(serializers.ModelSerializer):
+    """Own profile — only names are editable; email/role are read-only."""
+
+    class Meta:
+        model = User
+        fields = ["id", "email", "first_name", "last_name", "role", "is_active"]
+        read_only_fields = ["id", "email", "role", "is_active"]
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+
+    def validate_old_password(self, value):
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Current password is incorrect.")
+        return value
+
+    def validate_new_password(self, value):
+        from django.contrib.auth.password_validation import validate_password
+
+        validate_password(value, user=self.context["request"].user)
+        return value
+
+    def save(self, **kwargs):
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        return user
         
 
 class LoginSerializer(TokenObtainPairSerializer):

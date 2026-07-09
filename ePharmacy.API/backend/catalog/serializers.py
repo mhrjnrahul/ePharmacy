@@ -47,11 +47,39 @@ class MedicinePriceMixin:
             return None
         return batch.selling_price
 
+    def _get_sellable_batches(self, obj):
+        prefetched = getattr(obj, "priced_batches", None)
+        if prefetched is not None:
+            return prefetched
+
+        today = timezone.now().date()
+        return (
+            Batch.objects.filter(
+                medicine=obj,
+                is_active=True,
+                expiry_date__gt=today,
+                inventory__quantity_available__gt=0,
+            )
+            .select_related("inventory")
+            .order_by("expiry_date")
+        )
+
+    def get_available_stock(self, obj):
+        return sum(
+            batch.inventory.quantity_available
+            for batch in self._get_sellable_batches(obj)
+        )
+
+    def get_in_stock(self, obj):
+        return self.get_available_stock(obj) > 0
+
 
 class MedicineListSerializer(MedicinePriceMixin, serializers.ModelSerializer):
     """Lightweight serializer for list endpoints — no nested objects."""
 
     customer_price = serializers.SerializerMethodField()
+    available_stock = serializers.SerializerMethodField()
+    in_stock = serializers.SerializerMethodField()
     category_name = serializers.CharField(
         source="category.name", read_only=True
     )
@@ -73,6 +101,8 @@ class MedicineListSerializer(MedicinePriceMixin, serializers.ModelSerializer):
             "category_name",
             "manufacturer_name",
             "customer_price",
+            "available_stock",
+            "in_stock",
             "requires_prescription",
             "image",
             "is_active",
@@ -86,6 +116,8 @@ class MedicineDetailSerializer(
     """Full serializer for retrieve, create, update."""
 
     customer_price = serializers.SerializerMethodField()
+    available_stock = serializers.SerializerMethodField()
+    in_stock = serializers.SerializerMethodField()
     category_name = serializers.CharField(
         source="category.name", read_only=True
     )
@@ -107,6 +139,8 @@ class MedicineDetailSerializer(
             "manufacturer",
             "manufacturer_name",
             "customer_price",
+            "available_stock",
+            "in_stock",
             "requires_prescription",
             "dosage_form",
             "dosage_form_display",

@@ -6,6 +6,7 @@ from .views import (
     BatchStockMovementListView,
     StockAdjustmentView,
     InventorySummaryView,
+    BatchWriteOffView,
 )
 
 app_name = "inventory"
@@ -20,6 +21,11 @@ urlpatterns = [
         "batches/<uuid:batch_id>/movements/",
         BatchStockMovementListView.as_view(),
         name="batch-movement-list",
+    ),
+    path(
+        "batches/<uuid:pk>/write-off/",
+        BatchWriteOffView.as_view(),
+        name="batch-write-off",
     ),
     # Stock movements ledger
     path("movements/", StockMovementListView.as_view(), name="movement-list"),

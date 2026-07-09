@@ -3,15 +3,16 @@ import type { PaymentInitiateResponse, PaymentRecord } from "@/types/order"
 
 export const ESEWA_GATEWAY_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
 
+// NOTE: the backend mounts this app at /api/payment/ (singular)
 export const paymentsApi = {
   initiate: (orderId: string) =>
-    api.post<PaymentInitiateResponse>("/api/payments/initiate/", { order: orderId }).then(r => r.data),
+    api.post<PaymentInitiateResponse>("/api/payment/initiate/", { order: orderId }).then(r => r.data),
 
   verify: (data: Record<string, string>) =>
-    api.post<PaymentRecord>("/api/payments/verify/", data).then(r => r.data),
+    api.post<PaymentRecord>("/api/payment/verify/", data).then(r => r.data),
 
   getByOrder: (orderId: string) =>
-    api.get<PaymentRecord>(`/api/payments/${orderId}/`).then(r => r.data),
+    api.get<PaymentRecord>(`/api/payment/${orderId}/`).then(r => r.data),
 }
 
 /** Submits the eSewa form fields programmatically — triggers browser redirect to eSewa. */

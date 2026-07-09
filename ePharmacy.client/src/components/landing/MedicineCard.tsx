@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Pill, ShieldAlert, ShoppingCart, Info, Check, AlertTriangle } from "lucide-react"
+import { Pill, ShoppingCart, Info, Check, AlertTriangle } from "lucide-react"
 import type { MedicineListItem } from "@/types/medicine"
 import { useAuthStore } from "@/store/authStore"
 import { useAddToCart, useCart } from "@/hooks/useCart"

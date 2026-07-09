@@ -56,8 +56,21 @@ export const useStockAdjust = () => {
   })
 }
 
-export const useInventorySummary = () =>
+export const useInventorySummary = (params?: { low_stock_threshold?: number; expiry_days?: number }) =>
   useQuery({
-    queryKey: ["inventory-summary"],
-    queryFn: inventoryApi.getSummary,
+    queryKey: ["inventory-summary", params],
+    queryFn: () => inventoryApi.getSummary(params),
   })
+
+export const useWriteOffBatch = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ batchId, notes }: { batchId: string; notes?: string }) =>
+      inventoryApi.writeOff(batchId, notes),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: BATCHES_KEY })
+      qc.invalidateQueries({ queryKey: MOVEMENTS_KEY })
+      qc.invalidateQueries({ queryKey: ["inventory-summary"] })
+    },
+  })
+}

@@ -1,7 +1,8 @@
 import { api } from "./axios"
 import type {
   BatchList, BatchDetail, CreateBatchRequest,
-  UpdateBatchRequest, StockMovement, StockAdjustRequest
+  UpdateBatchRequest, StockMovement, StockAdjustRequest,
+  InventorySummary, WriteOffResponse,
 } from "@/types/inventory"
 
 export const inventoryApi = {
@@ -29,7 +30,12 @@ export const inventoryApi = {
   adjust: (data: StockAdjustRequest) =>
     api.post("/api/inventory/adjust/", data).then(r => r.data),
 
-  // Summary
-  getSummary: () =>
-    api.get("/api/inventory/summary/").then(r => r.data),
+  // Write off an expired batch: records EXPIRED_OUT and deactivates it.
+  // Backend rejects batches that have not expired yet.
+  writeOff: (batchId: string, notes?: string) =>
+    api.post<WriteOffResponse>(`/api/inventory/batches/${batchId}/write-off/`, { notes: notes ?? "" }).then(r => r.data),
+
+  // Summary — thresholds are tunable per request
+  getSummary: (params?: { low_stock_threshold?: number; expiry_days?: number }) =>
+    api.get<InventorySummary>("/api/inventory/summary/", { params }).then(r => r.data),
 }

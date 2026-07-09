@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Pill, Menu, X, ChevronDown, LayoutDashboard, ShoppingBag, LogOut } from "lucide-react"
+import { Pill, Menu, X, ChevronDown, LayoutDashboard, ShoppingBag, LogOut, FileHeart, UserRound } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { CartTrigger, CartDrawer } from "./CartDrawer"
 import { green, gray } from "./tokens"
 
+// "/#anchor" hrefs work from any route, not just the landing page
 const NAV_LINKS = [
-  { label: "Home",          href: "#hero"       },
-  { label: "Medicines",     href: "#medicines"  },
-  { label: "How It Works",  href: "#how"        },
-  { label: "Categories",    href: "#categories" },
+  { label: "Home",          href: "/#hero"       },
+  { label: "Shop",          href: "/shop"        },
+  { label: "How It Works",  href: "/#how"        },
+  { label: "Categories",    href: "/#categories" },
 ]
 
 const getInitials = (first: string, last: string) => {
@@ -73,7 +74,7 @@ export const Navbar = () => {
   }
 
   const isCustomer     = user?.role === "CUSTOMER"
-  const dashboardPath  = isCustomer ? "/orders" : "/dashboard"
+  const dashboardPath  = isCustomer ? "/account/orders" : "/admin"
   const dashboardLabel = isCustomer ? "My Orders" : "Dashboard"
   const initials       = getInitials(user?.first_name ?? "", user?.last_name ?? "")
   const fullName       = `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim()
@@ -206,6 +207,22 @@ export const Navbar = () => {
                         to={dashboardPath}
                         onClick={() => setDropdownOpen(false)}
                       />
+                      {isCustomer && (
+                        <>
+                          <DropdownItem
+                            icon={<FileHeart size={15} color={gray[500]} />}
+                            label="My Prescriptions"
+                            to="/account/prescriptions"
+                            onClick={() => setDropdownOpen(false)}
+                          />
+                          <DropdownItem
+                            icon={<UserRound size={15} color={gray[500]} />}
+                            label="Profile"
+                            to="/account/profile"
+                            onClick={() => setDropdownOpen(false)}
+                          />
+                        </>
+                      )}
                     </div>
 
                     <div style={{ borderTop: `1px solid ${gray[100]}`, padding: "6px 0" }}>

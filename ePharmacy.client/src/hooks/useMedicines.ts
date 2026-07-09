@@ -1,13 +1,31 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { medicinesApi } from "@/api/medicines"
-import type { CreateMedicineRequest, UpdateMedicineRequest } from "@/types/medicine"
+import type { CreateMedicineRequest, MedicineListParams, UpdateMedicineRequest } from "@/types/medicine"
 
 export const MEDICINES_KEY = ["medicines"] as const
 
-export const useMedicines = () =>
+export const useMedicines = (params?: MedicineListParams) =>
   useQuery({
-    queryKey: MEDICINES_KEY,
-    queryFn: medicinesApi.getAll,
+    queryKey: params ? [...MEDICINES_KEY, params] : MEDICINES_KEY,
+    queryFn: () => medicinesApi.getAll(params),
+  })
+
+export const usePopularMedicines = (limit = 8) =>
+  useQuery({
+    queryKey: [...MEDICINES_KEY, "popular", limit],
+    queryFn: () => medicinesApi.getPopular(limit),
+  })
+
+export const useMedicineRecommendations = (id: string | null) =>
+  useQuery({
+    queryKey: [...MEDICINES_KEY, id, "recommendations"],
+    queryFn: () => medicinesApi.getRecommendations(id!),
+    enabled: !!id,
+  })
+
+export const useRebuildRecommendations = () =>
+  useMutation({
+    mutationFn: medicinesApi.rebuildRecommendations,
   })
 
 export const useCreateMedicine = () => {

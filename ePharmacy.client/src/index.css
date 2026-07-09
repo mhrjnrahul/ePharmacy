@@ -25,6 +25,11 @@
     --color-input: var(--input);
     --color-border: var(--border);
     --color-destructive: var(--destructive);
+    --color-destructive-soft: var(--destructive-soft);
+    --color-warning: var(--warning);
+    --color-warning-soft: var(--warning-soft);
+    --color-info: var(--info);
+    --color-info-soft: var(--info-soft);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
     --color-muted-foreground: var(--muted-foreground);
@@ -33,6 +38,7 @@
     --color-secondary: var(--secondary);
     --color-primary-foreground: var(--primary-foreground);
     --color-primary: var(--primary);
+    --color-primary-soft: var(--primary-soft);
     --color-popover-foreground: var(--popover-foreground);
     --color-popover: var(--popover);
     --color-card-foreground: var(--card-foreground);
@@ -48,39 +54,56 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+  ePharmacy theme — the emerald identity, promoted from scattered inline hex
+  into the token system. Single source of truth for color.
+
+  primary        emerald 600  (#059669)  — actions, active nav, links
+  primary-soft   emerald 50   (#ecfdf5)  — tinted fills for tags/active states
+  accent-fg      emerald 800  (#065f46)  — text on soft emerald
+  warning        amber 600               — low stock, pending states
+  info           blue 600                — confirmed/processing states
+  destructive    red                     — expiry, cancel, errors
+*/
 :root {
-    --background: oklch(1 0 0);
+    --background: oklch(0.985 0.002 165);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
+    --primary: oklch(0.596 0.128 163);
     --primary-foreground: oklch(0.985 0 0);
+    --primary-soft: oklch(0.979 0.021 166);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
     --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --accent: oklch(0.979 0.021 166);
+    --accent-foreground: oklch(0.432 0.091 167);
     --destructive: oklch(0.577 0.245 27.325);
+    --destructive-soft: oklch(0.971 0.013 17.38);
+    --warning: oklch(0.666 0.157 58.3);
+    --warning-soft: oklch(0.987 0.022 95.28);
+    --info: oklch(0.546 0.215 262.88);
+    --info-soft: oklch(0.97 0.014 254.6);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --ring: oklch(0.596 0.128 163);
+    --chart-1: oklch(0.596 0.128 163);
+    --chart-2: oklch(0.765 0.117 163);
+    --chart-3: oklch(0.556 0 0);
+    --chart-4: oklch(0.666 0.157 58.3);
+    --chart-5: oklch(0.432 0.091 167);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
+    --sidebar: oklch(1 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary: oklch(0.596 0.128 163);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-accent: oklch(0.979 0.021 166);
+    --sidebar-accent-foreground: oklch(0.432 0.091 167);
     --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar-ring: oklch(0.596 0.128 163);
 }
 
 .dark {
@@ -90,31 +113,37 @@
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
+    --primary: oklch(0.696 0.14 162);
+    --primary-foreground: oklch(0.145 0 0);
+    --primary-soft: oklch(0.26 0.03 166);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.269 0 0);
     --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    --accent: oklch(0.26 0.03 166);
+    --accent-foreground: oklch(0.845 0.09 165);
     --destructive: oklch(0.704 0.191 22.216);
+    --destructive-soft: oklch(0.26 0.03 22);
+    --warning: oklch(0.769 0.155 70.08);
+    --warning-soft: oklch(0.26 0.03 80);
+    --info: oklch(0.623 0.188 259.81);
+    --info-soft: oklch(0.26 0.03 260);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --ring: oklch(0.696 0.14 162);
+    --chart-1: oklch(0.696 0.14 162);
+    --chart-2: oklch(0.845 0.09 165);
+    --chart-3: oklch(0.708 0 0);
+    --chart-4: oklch(0.769 0.155 70.08);
+    --chart-5: oklch(0.52 0.11 166);
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.696 0.14 162);
+    --sidebar-primary-foreground: oklch(0.145 0 0);
+    --sidebar-accent: oklch(0.26 0.03 166);
+    --sidebar-accent-foreground: oklch(0.845 0.09 165);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --sidebar-ring: oklch(0.696 0.14 162);
 }
 
 @layer base {
@@ -129,7 +158,25 @@
     }
 }
 
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rise-in {
+  animation: rise-in 0.15s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in { animation: none; }
+  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

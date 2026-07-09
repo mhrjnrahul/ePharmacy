@@ -2,13 +2,14 @@ import { Outlet } from "react-router-dom"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
 
+/** Console shell for ADMIN/STAFF — sidebar + topbar. */
 const AppLayout = () => {
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
       </div>

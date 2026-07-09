@@ -79,7 +79,7 @@ const PaymentSuccessPage = () => {
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <Link
-                  to="/orders"
+                  to="/account/orders"
                   style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px", backgroundColor: green[600], color: "#fff", borderRadius: "10px", fontSize: "14px", fontWeight: 600, textDecoration: "none", transition: "background 0.15s" }}
                   onMouseEnter={e => (e.currentTarget.style.backgroundColor = green[700])}
                   onMouseLeave={e => (e.currentTarget.style.backgroundColor = green[600])}

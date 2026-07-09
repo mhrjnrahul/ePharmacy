@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { ChevronRight, AlertCircle } from "lucide-react"
-import { useMedicines } from "@/hooks/useMedicines"
-import { useAuthStore } from "@/store/authStore"
+import { usePopularMedicines } from "@/hooks/useMedicines"
 import { MedicineCard, MedicineCardSkeleton } from "./MedicineCard"
 import { MedicineDetailModal } from "./MedicineDetailModal"
 import { green, gray } from "./tokens"
@@ -9,12 +8,11 @@ import { green, gray } from "./tokens"
 const VISIBLE_COUNT = 8
 
 export const MedicinesSection = () => {
-  const { data: medicines, isLoading, isError } = useMedicines()
-  const { isAuthenticated } = useAuthStore()
+  const { data, isLoading, isError } = usePopularMedicines(VISIBLE_COUNT)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const visible = medicines?.filter(m => m.is_active).slice(0, VISIBLE_COUNT) ?? []
+  const visible = data?.results.filter(m => m.is_active).slice(0, VISIBLE_COUNT) ?? []
 
   return (
     <>
@@ -25,20 +23,18 @@ export const MedicinesSection = () => {
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "40px", flexWrap: "wrap", gap: "12px" }}>
             <div>
               <h2 style={{ fontSize: "36px", fontWeight: 700, color: gray[900], margin: "0 0 8px" }}>
-                Browse Our Medicines
+                Popular Medicines
               </h2>
               <p style={{ fontSize: "15px", color: gray[500], margin: 0 }}>
-                Explore our wide range of genuine, verified medicines
+                What other customers order most — genuine and verified
               </p>
             </div>
-            {!isAuthenticated && (
-              <a
-                href="/register"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 500, color: green[600], textDecoration: "none", flexShrink: 0, marginBottom: "6px" }}
-              >
-                View all <ChevronRight size={15} />
-              </a>
-            )}
+            <a
+              href="/shop"
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 500, color: green[600], textDecoration: "none", flexShrink: 0, marginBottom: "6px" }}
+            >
+              Browse the full shop <ChevronRight size={15} />
+            </a>
           </div>
 
           {/* Error state */}

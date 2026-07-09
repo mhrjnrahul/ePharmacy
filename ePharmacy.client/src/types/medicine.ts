@@ -10,6 +10,9 @@ export interface Medicine {
   category_name: string
   manufacturer: string    // UUID
   manufacturer_name: string
+  customer_price: string | null   // FIFO batch price; null = out of stock
+  available_stock: number
+  in_stock: boolean
   requires_prescription: boolean
   dosage_form: DosageForm
   dosage_form_display: string
@@ -28,9 +31,27 @@ export interface MedicineListItem {
   dosage_form_display: string
   category_name: string
   manufacturer_name: string
+  customer_price: string | null
+  available_stock: number
+  in_stock: boolean
   requires_prescription: boolean
   image: string | null
   is_active: boolean
+}
+
+export interface MedicineListParams {
+  category?: string
+  manufacturer?: string
+  requires_prescription?: boolean
+  dosage_form?: DosageForm
+  search?: string
+  ordering?: string
+}
+
+export interface RecommendationResponse {
+  medicine?: string
+  based_on_cart_items?: number
+  results: MedicineListItem[]
 }
 
 export interface CreateMedicineRequest {

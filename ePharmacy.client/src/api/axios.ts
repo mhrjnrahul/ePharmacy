@@ -24,12 +24,18 @@ const processQueue = (error: unknown, token: string | null) => {
   failedQueue = []
 }
 
+// Auth endpoints return 401 for wrong credentials, not for an expired session —
+// letting the refresh/redirect logic below run for these would hide the real
+// error behind a hard redirect to /login (looks like the page just reloaded).
+const AUTH_ENDPOINTS = ["/api/auth/login/", "/api/auth/register/", "/api/auth/refresh/"]
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+    const isAuthEndpoint = AUTH_ENDPOINTS.some((url) => originalRequest?.url?.includes(url))
 
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    if (error.response?.status !== 401 || originalRequest._retry || isAuthEndpoint) {
       return Promise.reject(error)
     }
 

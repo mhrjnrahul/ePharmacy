@@ -11,10 +11,10 @@ const LandingPage = () => (
   <div style={{ fontFamily: "var(--font-sans, system-ui, sans-serif)", backgroundColor: "#ffffff" }}>
     <Navbar />
     <HeroCarousel />
-    <FeaturesSection />
-    <HowItWorksSection />
     <MedicinesSection />
     <CategoriesSection />
+    <FeaturesSection />
+    <HowItWorksSection />
     <CTABanner />
     <Footer />
   </div>

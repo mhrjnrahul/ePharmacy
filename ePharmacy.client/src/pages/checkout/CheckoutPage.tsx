@@ -5,7 +5,11 @@ import { useCart } from "@/hooks/useCart"
 import { ordersApi } from "@/api/orders"
 import { paymentsApi, submitEsewaForm } from "@/api/payments"
 import { toast } from "@/store/toastStore"
+import { extractErrorMessage } from "@/lib/errors"
 import { green, gray } from "@/components/landing/tokens"
+
+// Matches the backend's CheckoutSerializer.delivery_address min_length
+const MIN_ADDRESS_LENGTH = 10
 
 const CheckoutPage = () => {
   const navigate = useNavigate()
@@ -19,9 +23,16 @@ const CheckoutPage = () => {
   const hasRx = items.some(i => i.requires_prescription)
   const isEmpty = !isLoading && items.length === 0
 
+  const trimmedAddress = address.trim()
+  const addressTooShort = trimmedAddress.length > 0 && trimmedAddress.length < MIN_ADDRESS_LENGTH
+
   const handlePlaceOrder = async () => {
-    if (!address.trim()) {
+    if (!trimmedAddress) {
       toast.warning("Please enter a delivery address.")
+      return
+    }
+    if (trimmedAddress.length < MIN_ADDRESS_LENGTH) {
+      toast.warning(`Delivery address must be at least ${MIN_ADDRESS_LENGTH} characters — please include street, area, and city.`)
       return
     }
     if (isEmpty) {
@@ -32,15 +43,15 @@ const CheckoutPage = () => {
     setSubmitting(true)
     try {
       // 1. Create the order
-      const order = await ordersApi.checkout({ delivery_address: address.trim() })
+      const order = await ordersApi.checkout({ delivery_address: trimmedAddress })
 
       // 2. Initiate eSewa payment
       const payload = await paymentsApi.initiate(order.id)
 
       // 3. Redirect to eSewa gateway (browser form POST)
       submitEsewaForm(payload)
-    } catch {
-      toast.error("Failed to place order. Please try again.")
+    } catch (err) {
+      toast.error(extractErrorMessage(err, "Failed to place order. Please try again."))
       setSubmitting(false)
     }
   }
@@ -67,7 +78,7 @@ const CheckoutPage = () => {
         </div>
       </header>
 
-      <div className="checkout-grid" style={{ maxWidth: "960px", margin: "0 auto", padding: "40px 24px", display: "grid", gridTemplateColumns: "1fr 360px", gap: "28px", alignItems: "start" }}>
+      <div className="checkout-grid" style={{ maxWidth: "960px", margin: "0 auto", padding: "40px 24px", display: "grid", gridTemplateColumns: "1fr 360px", gap: "28px", alignItems: "start", boxSizing: "border-box" }}>
 
         {/* ── Left column ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -88,13 +99,18 @@ const CheckoutPage = () => {
               rows={4}
               style={{
                 width: "100%", padding: "12px 14px", fontSize: "14px", color: gray[900],
-                border: `1.5px solid ${gray[200]}`, borderRadius: "10px", resize: "vertical",
+                border: `1.5px solid ${addressTooShort ? "#ef4444" : gray[200]}`, borderRadius: "10px", resize: "vertical",
                 outline: "none", fontFamily: "inherit", lineHeight: 1.6,
                 transition: "border-color 0.15s", boxSizing: "border-box",
               }}
-              onFocus={e => (e.target.style.borderColor = green[500])}
-              onBlur={e => (e.target.style.borderColor = gray[200])}
+              onFocus={e => (e.target.style.borderColor = addressTooShort ? "#ef4444" : green[500])}
+              onBlur={e => (e.target.style.borderColor = addressTooShort ? "#ef4444" : gray[200])}
             />
+            <p style={{ fontSize: "12px", margin: "6px 0 0", color: addressTooShort ? "#ef4444" : gray[500] }}>
+              {addressTooShort
+                ? `Please add a few more details (at least ${MIN_ADDRESS_LENGTH} characters, e.g. street, area, and city).`
+                : "Include street, area, and city so we can deliver accurately."}
+            </p>
           </section>
 
           {/* Prescription notice */}
@@ -126,7 +142,7 @@ const CheckoutPage = () => {
         </div>
 
         {/* ── Right column — order summary ── */}
-        <div style={{ backgroundColor: "#fff", borderRadius: "16px", border: `1px solid ${gray[200]}`, overflow: "hidden", position: "sticky", top: "24px" }}>
+        <div className="checkout-summary" style={{ backgroundColor: "#fff", borderRadius: "16px", border: `1px solid ${gray[200]}`, overflow: "hidden", position: "sticky", top: "24px" }}>
 
           <div style={{ padding: "20px 22px", borderBottom: `1px solid ${gray[100]}`, display: "flex", alignItems: "center", gap: "8px" }}>
             <ShoppingCart size={16} color={gray[700]} />
@@ -203,7 +219,8 @@ const CheckoutPage = () => {
       {/* Mobile responsive */}
       <style>{`
         @media (max-width: 768px) {
-          .checkout-grid { grid-template-columns: 1fr !important; }
+          .checkout-grid { grid-template-columns: 1fr !important; padding: 24px 16px !important; }
+          .checkout-summary { position: static !important; top: auto !important; }
         }
       `}</style>
     </div>

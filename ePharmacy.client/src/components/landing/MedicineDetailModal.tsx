@@ -1,14 +1,72 @@
 import { useState, useEffect, useRef } from "react"
-import { X, Pill, ShieldAlert, Minus, Plus, ShoppingCart, LogIn, Package, Check, AlertTriangle } from "lucide-react"
+import { X, Pill, ShieldAlert, Minus, Plus, ShoppingCart, LogIn, Package, Check, AlertTriangle, Upload, Loader2 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { useMedicineDetail } from "@/hooks/useMedicines"
 import { useAddToCart, useCart } from "@/hooks/useCart"
+import { useUploadPrescription } from "@/hooks/usePrescriptions"
 import { openCart } from "./CartDrawer"
 import { useAuthStore } from "@/store/authStore"
 import { toast } from "@/store/toastStore"
 import { green, gray } from "./tokens"
 
 const BASE_URL = "http://127.0.0.1:8000"
+const ACCEPTED_RX_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
+const MAX_RX_SIZE_MB = 10
+
+// Lets a customer submit a prescription right from the medicine they're viewing,
+// instead of forcing a trip to the separate "My Prescriptions" page first.
+const InlinePrescriptionUpload = () => {
+  const upload = useUploadPrescription()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [uploaded, setUploaded] = useState(false)
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return
+    if (!ACCEPTED_RX_TYPES.includes(file.type)) {
+      toast.error("Upload a JPG, PNG, WebP image or a PDF.")
+      return
+    }
+    if (file.size > MAX_RX_SIZE_MB * 1024 * 1024) {
+      toast.error(`File is too large — keep it under ${MAX_RX_SIZE_MB} MB.`)
+      return
+    }
+    try {
+      await upload.mutateAsync(file)
+      setUploaded(true)
+      toast.success("Prescription submitted for review.")
+    } catch (err: any) {
+      toast.error(err?.response?.data?.image?.[0] ?? "Upload failed. Try again.")
+    }
+  }
+
+  if (uploaded) {
+    return (
+      <p style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px", fontSize: "12px", fontWeight: 600, color: green[700] }}>
+        <Check size={13} color={green[600]} /> Submitted — track its status in My Prescriptions.
+      </p>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: "10px" }}>
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={upload.isPending}
+        style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "7px 12px", backgroundColor: "#fff", border: "1px solid #fde68a", borderRadius: "8px", fontSize: "12px", fontWeight: 600, color: "#92400e", cursor: upload.isPending ? "wait" : "pointer" }}
+      >
+        {upload.isPending ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <Upload size={13} />}
+        {upload.isPending ? "Uploading…" : "Upload Prescription Now"}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED_RX_TYPES.join(",")}
+        style={{ display: "none" }}
+        onChange={e => { handleFile(e.target.files?.[0]); e.target.value = "" }}
+      />
+    </div>
+  )
+}
 
 interface Props {
   medicineId: string | null
@@ -58,7 +116,7 @@ export const MedicineDetailModal = ({ medicineId, onClose }: Props) => {
 
     // Prescription warning fires immediately, before the API call
     if (medicine.requires_prescription) {
-      toast.warning(`${medicine.name} requires a prescription — upload one after placing your order.`)
+      toast.warning(`${medicine.name} requires a prescription — upload one above or anytime before checkout.`)
     }
 
     addToCart(
@@ -186,9 +244,12 @@ export const MedicineDetailModal = ({ medicineId, onClose }: Props) => {
                 {medicine.requires_prescription && (
                   <div style={{ display: "flex", gap: "10px", padding: "12px 14px", backgroundColor: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", marginBottom: "20px" }}>
                     <AlertTriangle size={16} color="#d97706" style={{ flexShrink: 0, marginTop: "1px" }} />
-                    <p style={{ fontSize: "12px", color: "#92400e", margin: 0, lineHeight: 1.6 }}>
-                      <strong>Prescription required.</strong> You must have a valid prescription for this medicine. After placing your order, upload your prescription via My Prescriptions — your order will be confirmed once approved.
-                    </p>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: "12px", color: "#92400e", margin: 0, lineHeight: 1.6 }}>
+                        <strong>Prescription required.</strong> You must have a valid prescription for this medicine — the pharmacy confirms which items it covers after review.
+                      </p>
+                      {isAuthenticated && isCustomer && <InlinePrescriptionUpload />}
+                    </div>
                   </div>
                 )}
 

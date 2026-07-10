@@ -8,8 +8,17 @@ const FEATURES = [
   { icon: <Star        size={22} color={green[600]} />, title: "Licensed Pharmacists",    desc: "Every order reviewed by a licensed pharmacist before dispatch."          },
 ]
 
+const FEATURES_STYLES = `
+  .features-section { padding: 80px 24px; }
+  .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  @media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 768px) { .features-section { padding: 56px 20px; } }
+  @media (max-width: 480px) { .features-grid { grid-template-columns: 1fr; } }
+`
+
 export const FeaturesSection = () => (
-  <section id="features" style={{ padding: "80px 24px", backgroundColor: "#fff" }}>
+  <section id="features" className="features-section" style={{ backgroundColor: "#fff" }}>
+    <style>{FEATURES_STYLES}</style>
     <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
 
       <div style={{ textAlign: "center", marginBottom: "56px" }}>
@@ -21,7 +30,7 @@ export const FeaturesSection = () => (
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "24px" }}>
+      <div className="features-grid">
         {FEATURES.map(({ icon, title, desc }) => (
           <div
             key={title}

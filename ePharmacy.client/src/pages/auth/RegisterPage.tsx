@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { registerUser } from "@/api/auth"
+import { extractErrorMessage } from "@/lib/errors"
 import { Loader2, Eye, EyeOff, CheckCircle2 } from "lucide-react"
 
 const RegisterPage = () => {
@@ -19,7 +20,7 @@ const RegisterPage = () => {
   const { mutate: register, isPending } = useMutation({
     mutationFn: registerUser,
     onSuccess: () => setSuccess(true),
-    onError: (err: Error) => setError(err.message ?? "Registration failed. Please try again."),
+    onError: (err) => setError(extractErrorMessage(err, "Registration failed. Please try again.")),
   })
 
   useEffect(() => {

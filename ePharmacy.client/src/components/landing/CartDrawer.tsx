@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { ShoppingCart, X, Trash2, Package, ArrowRight, Minus, Plus } from "lucide-react"
+import { ShoppingCart, X, Trash2, Package, ArrowRight, Minus, Plus, ChevronDown, Sparkles, Check, Loader2, Pill } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { useCart, useRemoveFromCart, useUpdateCartQuantity } from "@/hooks/useCart"
+import { useCart, useCartRecommendations, useAddToCart, useRemoveFromCart, useUpdateCartQuantity } from "@/hooks/useCart"
+import { mediaUrl, formatPrice } from "@/components/shop/ShopCard"
+import { toast } from "@/store/toastStore"
+import type { MedicineListItem } from "@/types/medicine"
 import { green, gray } from "./tokens"
 
 // ── Open/close state shared within the page via module-level signal ──────────
@@ -51,8 +54,10 @@ export const CartDrawer = () => {
   const navigate = useNavigate()
 
   const { data: cart, isLoading, isError } = useCart()
+  const { data: recommendations } = useCartRecommendations()
   const { mutate: removeItem } = useRemoveFromCart()
   const { mutate: updateQty, isPending: updatingQty } = useUpdateCartQuantity()
+  const [showRecs, setShowRecs] = useState(false)
 
   // Expose setter so CartTrigger (and openCart/closeCart) can drive this
   useEffect(() => {
@@ -160,6 +165,29 @@ export const CartDrawer = () => {
         {/* Footer */}
         {count > 0 && (
           <div style={{ padding: "20px 24px", borderTop: `1px solid ${gray[100]}`, flexShrink: 0, backgroundColor: "#fff" }}>
+
+            {/* You might also need — collapsed by default */}
+            {recommendations && recommendations.results.length > 0 && (
+              <div style={{ marginBottom: "14px", border: `1px solid ${gray[200]}`, borderRadius: "10px", overflow: "hidden" }}>
+                <button
+                  onClick={() => setShowRecs(v => !v)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", backgroundColor: gray[50], border: "none", cursor: "pointer" }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12.5px", fontWeight: 600, color: gray[700] }}>
+                    <Sparkles size={13} color={green[600]} /> You might also need
+                  </span>
+                  <ChevronDown size={14} color={gray[500]} style={{ transform: showRecs ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                </button>
+                {showRecs && (
+                  <div style={{ padding: "2px 10px 6px" }}>
+                    {recommendations.results.slice(0, 3).map(m => (
+                      <RecommendationRow key={m.id} medicine={m} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Total row */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <span style={{ fontSize: "14px", color: gray[500] }}>Estimated Total</span>
@@ -195,6 +223,50 @@ export const CartDrawer = () => {
       `}</style>
     </>,
     document.body
+  )
+}
+
+// ── Recommendation row ("you might also need") ────────────────────────────────
+const RecommendationRow = ({ medicine }: { medicine: MedicineListItem }) => {
+  const { data: cart } = useCart()
+  const inCart = !!cart?.items.find(i => i.medicine === medicine.id)
+  const { mutate: addToCart, isPending } = useAddToCart()
+
+  const image = mediaUrl(medicine.image)
+  const price = formatPrice(medicine.customer_price)
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 2px" }}>
+      <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: green[50], display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+        {image ? <img src={image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Pill size={14} color={green[600]} />}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: "12px", fontWeight: 600, color: gray[900], margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {medicine.name}
+        </p>
+        <p style={{ fontSize: "11px", color: gray[500], margin: 0 }}>{price ?? "—"}</p>
+      </div>
+      <button
+        onClick={() => addToCart(
+          { medicine: medicine.id, quantity: 1 },
+          {
+            onSuccess: () => toast.success(`${medicine.name} added to cart.`),
+            onError: () => toast.error("Could not add to cart."),
+          }
+        )}
+        disabled={inCart || isPending || !medicine.in_stock}
+        title={inCart ? "Already in cart" : "Add to cart"}
+        style={{
+          width: "26px", height: "26px", borderRadius: "8px", border: "none", flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          backgroundColor: inCart ? green[50] : green[600],
+          color: inCart ? green[600] : "#fff",
+          cursor: inCart ? "default" : "pointer",
+        }}
+      >
+        {isPending ? <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> : inCart ? <Check size={12} /> : <Plus size={12} />}
+      </button>
+    </div>
   )
 }
 

@@ -7,8 +7,20 @@ const STEPS = [
   { icon: <Package      size={24} color={green[600]} />, step: "03", title: "Fast Delivery",    desc: "We verify your order and deliver it straight to your door."               },
 ]
 
+const HOW_STYLES = `
+  .how-section    { padding: 80px 24px; }
+  .how-grid       { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; position: relative; }
+  .how-connector  { position: absolute; top: 40px; left: calc(16.66% + 40px); right: calc(16.66% + 40px); height: 2px; background-color: ${green[100]}; z-index: 0; }
+  @media (max-width: 768px) {
+    .how-section   { padding: 56px 20px; }
+    .how-grid      { grid-template-columns: 1fr; gap: 40px; }
+    .how-connector { display: none; }
+  }
+`
+
 export const HowItWorksSection = () => (
-  <section id="how" style={{ padding: "80px 24px", backgroundColor: "#fff" }}>
+  <section id="how" className="how-section" style={{ backgroundColor: "#fff" }}>
+    <style>{HOW_STYLES}</style>
     <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
 
       <div style={{ textAlign: "center", marginBottom: "56px" }}>
@@ -20,9 +32,9 @@ export const HowItWorksSection = () => (
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px", position: "relative" }}>
+      <div className="how-grid">
         {/* Connector line */}
-        <div style={{ position: "absolute", top: "40px", left: "calc(16.66% + 40px)", right: "calc(16.66% + 40px)", height: "2px", backgroundColor: green[100], zIndex: 0 }} />
+        <div className="how-connector" />
 
         {STEPS.map(({ icon, step, title, desc }) => (
           <div key={step} style={{ textAlign: "center", position: "relative", zIndex: 1 }}>

@@ -188,8 +188,8 @@ const AccountOrderDetailPage = () => {
       {order.status !== "pending" && order.status !== "cancelled" && <TrackingCard orderId={order.id} />}
 
       {/* Items */}
-      <div className="overflow-hidden rounded-lg border bg-card">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border bg-card">
+        <table className="w-full min-w-[480px] text-sm">
           <thead>
             <tr className="border-b text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-2.5">Medicine</th>

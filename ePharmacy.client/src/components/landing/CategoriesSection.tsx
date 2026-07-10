@@ -11,11 +11,20 @@ const CATEGORIES = [
   { label: "Vitamins",       icon: "⚡", desc: "Supplements & vitamins",          count: 87 },
 ]
 
+const CATEGORIES_STYLES = `
+  .categories-section { padding: 80px 24px; }
+  .categories-grid    { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .categories-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 768px) { .categories-section { padding: 56px 20px; } }
+  @media (max-width: 480px) { .categories-grid { grid-template-columns: 1fr; } }
+`
+
 export const CategoriesSection = () => (
-  <section id="categories" style={{ padding: "80px 24px", backgroundColor: gray[50] }}>
+  <section id="categories" className="categories-section" style={{ backgroundColor: gray[50] }}>
+    <style>{CATEGORIES_STYLES}</style>
     <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "40px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "40px" }}>
         <div>
           <h2 style={{ fontSize: "36px", fontWeight: 700, color: gray[900], margin: "0 0 8px" }}>
             Browse by Category
@@ -25,18 +34,18 @@ export const CategoriesSection = () => (
           </p>
         </div>
         <Link
-          to="/register"
+          to="/shop"
           style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 500, color: green[600], textDecoration: "none" }}
         >
           View all <ChevronRight size={15} />
         </Link>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
+      <div className="categories-grid">
         {CATEGORIES.map(({ label, icon, desc, count }) => (
           <Link
             key={label}
-            to="/register"
+            to="/shop"
             style={{ display: "flex", alignItems: "center", gap: "16px", padding: "20px", borderRadius: "14px", border: `1px solid ${gray[200]}`, backgroundColor: "#fff", textDecoration: "none", transition: "all 0.2s" }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = green[500]; e.currentTarget.style.backgroundColor = green[50] }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = gray[200];  e.currentTarget.style.backgroundColor = "#fff"   }}

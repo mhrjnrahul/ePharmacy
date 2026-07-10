@@ -82,7 +82,7 @@ const SectionCard = ({
       <p className="text-sm font-semibold text-foreground">{title}</p>
       <p className="text-xs text-muted-foreground">{sub}</p>
     </div>
-    {children}
+    <div className="overflow-x-auto">{children}</div>
   </div>
 )
 
@@ -118,7 +118,7 @@ const AlertsPage = () => {
         title="Stock alerts"
         description="Low stock, expiring, and expired batches that need action"
         actions={
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <label className="flex items-center gap-1.5">
               Low stock below
               <input
@@ -164,7 +164,7 @@ const AlertsPage = () => {
               title={`Expired batches (${data!.expired_active_count})`}
               sub="Still counted as active stock — write them off to record the loss"
             >
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[420px] text-sm">
                 <tbody>
                   {data!.expired_batches.map(b => (
                     <tr key={b.batch_id} className="border-b last:border-0">
@@ -196,7 +196,7 @@ const AlertsPage = () => {
               title={`Expiring within ${data!.expiry_days} days (${data!.expiring_soon_count})`}
               sub="Sell these first — checkout already picks earliest expiry"
             >
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[420px] text-sm">
                 <tbody>
                   {data!.expiring_soon_batches.map(b => (
                     <tr key={b.batch_id} className="border-b last:border-0">
@@ -221,7 +221,7 @@ const AlertsPage = () => {
               title={`Low stock (${data!.low_stock_count})`}
               sub={`Below ${data!.low_stock_threshold} units — restock from Inventory`}
             >
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[420px] text-sm">
                 <tbody>
                   {data!.low_stock_batches.map(b => (
                     <tr key={b.batch_id} className="border-b last:border-0">

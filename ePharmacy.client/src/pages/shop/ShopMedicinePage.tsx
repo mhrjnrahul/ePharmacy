@@ -1,14 +1,74 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Loader2, Minus, Pill, Plus, ShoppingCart } from "lucide-react"
+import { ArrowLeft, Check, Loader2, Minus, Pill, Plus, ShoppingCart, Upload } from "lucide-react"
 import { useMedicineDetail, useMedicineRecommendations } from "@/hooks/useMedicines"
 import { useAddToCart, useCart } from "@/hooks/useCart"
+import { useUploadPrescription } from "@/hooks/usePrescriptions"
 import { useAuthStore } from "@/store/authStore"
 import { openCart } from "@/components/landing/CartDrawer"
 import { ShopCard, ShopCardSkeleton, mediaUrl, formatPrice } from "@/components/shop/ShopCard"
 import { RxTag, StockTag, Tag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
 import { toast } from "@/store/toastStore"
+
+const ACCEPTED_RX_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
+const MAX_RX_SIZE_MB = 10
+
+// Upload a prescription right from the medicine page instead of requiring a
+// detour to the separate "My Prescriptions" page before it can be ordered.
+const InlinePrescriptionUpload = () => {
+  const upload = useUploadPrescription()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [uploaded, setUploaded] = useState(false)
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return
+    if (!ACCEPTED_RX_TYPES.includes(file.type)) {
+      toast.error("Upload a JPG, PNG, WebP image or a PDF.")
+      return
+    }
+    if (file.size > MAX_RX_SIZE_MB * 1024 * 1024) {
+      toast.error(`File is too large — keep it under ${MAX_RX_SIZE_MB} MB.`)
+      return
+    }
+    try {
+      await upload.mutateAsync(file)
+      setUploaded(true)
+      toast.success("Prescription submitted for review.")
+    } catch (err: any) {
+      toast.error(err?.response?.data?.image?.[0] ?? "Upload failed. Try again.")
+    }
+  }
+
+  if (uploaded) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
+        <Check size={13} /> Submitted — track it in My Prescriptions.
+      </span>
+    )
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={upload.isPending}
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline disabled:opacity-60"
+      >
+        {upload.isPending ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+        {upload.isPending ? "Uploading…" : "Upload it now"}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED_RX_TYPES.join(",")}
+        className="hidden"
+        onChange={e => { handleFile(e.target.files?.[0]); e.target.value = "" }}
+      />
+    </>
+  )
+}
 
 const ShopMedicinePage = () => {
   const { id } = useParams<{ id: string }>()
@@ -165,9 +225,10 @@ const ShopMedicinePage = () => {
 
             {medicine.requires_prescription && isCustomer && (
               <p className="mt-3 text-xs text-muted-foreground">
-                This medicine needs an approved prescription before checkout.{" "}
+                This medicine needs an approved prescription before checkout. <InlinePrescriptionUpload />{" "}
+                or view all in{" "}
                 <Link to="/account/prescriptions" className="font-semibold text-primary hover:underline">
-                  Upload yours here
+                  My Prescriptions
                 </Link>
                 .
               </p>

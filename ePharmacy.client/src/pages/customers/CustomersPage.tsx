@@ -60,9 +60,15 @@ export default function CustomersPage() {
 
   return (
     <div style={{ padding: "24px", fontFamily: "'Figtree Variable', sans-serif" }}>
+      <style>{`
+        .customers-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        @media (max-width: 640px) { .customers-summary-grid { grid-template-columns: 1fr; } }
+        .customers-row { display: grid; grid-template-columns: 2fr 2fr 1.5fr 1fr; }
+        @media (max-width: 640px) { .customers-row { grid-template-columns: 1.5fr 1fr; } .customers-row .customers-col-email, .customers-row .customers-col-joined { display: none; } }
+      `}</style>
 
       {/* Summary cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+      <div className="customers-summary-grid">
         {summaryCards.map((card) => (
           <div
             key={card.label}
@@ -109,6 +115,8 @@ export default function CustomersPage() {
               color: gray[900],
               outline: "none",
               width: 220,
+              maxWidth: "100%",
+              boxSizing: "border-box",
               background: "#fff",
             }}
           />
@@ -168,9 +176,8 @@ export default function CustomersPage() {
       >
         {/* Table header */}
         <div
+          className="customers-row"
           style={{
-            display: "grid",
-            gridTemplateColumns: "2fr 2fr 1.5fr 1fr",
             padding: "10px 20px",
             background: gray[50],
             borderBottom: `1px solid ${gray[200]}`,
@@ -179,6 +186,7 @@ export default function CustomersPage() {
           {["Name", "Email", "Joined", "Status"].map((h) => (
             <span
               key={h}
+              className={h === "Email" ? "customers-col-email" : h === "Joined" ? "customers-col-joined" : undefined}
               style={{ fontSize: 11, fontWeight: 600, color: gray[500], textTransform: "uppercase", letterSpacing: "0.05em" }}
             >
               {h}
@@ -209,9 +217,8 @@ export default function CustomersPage() {
         {!isLoading && !isError && filtered.map((user, idx) => (
           <div
             key={user.id}
+            className="customers-row"
             style={{
-              display: "grid",
-              gridTemplateColumns: "2fr 2fr 1.5fr 1fr",
               padding: "14px 20px",
               borderBottom: idx < filtered.length - 1 ? `1px solid ${gray[200]}` : "none",
               alignItems: "center",
@@ -226,10 +233,10 @@ export default function CustomersPage() {
             </span>
 
             {/* Email */}
-            <span style={{ fontSize: 14, color: gray[500] }}>{user.email}</span>
+            <span className="customers-col-email" style={{ fontSize: 14, color: gray[500] }}>{user.email}</span>
 
             {/* Joined */}
-            <span style={{ fontSize: 14, color: gray[500] }}>
+            <span className="customers-col-joined" style={{ fontSize: 14, color: gray[500] }}>
               {(user as any).date_joined ? formatDate((user as any).date_joined) : "—"}
             </span>
 

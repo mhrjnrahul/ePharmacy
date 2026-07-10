@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { Pill, Menu, X, ChevronDown, LayoutDashboard, ShoppingBag, LogOut, FileHeart, UserRound } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { CartTrigger, CartDrawer } from "./CartDrawer"
+import { LogoutConfirmModal } from "@/components/LogoutConfirmModal"
 import { green, gray } from "./tokens"
 
 // "/#anchor" hrefs work from any route, not just the landing page
@@ -46,6 +47,7 @@ export const Navbar = () => {
 
   const [mobileOpen,   setMobileOpen]   = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [confirmingLogout, setConfirmingLogout] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Close profile dropdown when clicking outside
@@ -71,6 +73,11 @@ export const Navbar = () => {
     setDropdownOpen(false)
     setMobileOpen(false)
     navigate("/")
+  }
+
+  const confirmLogout = () => {
+    setConfirmingLogout(false)
+    handleLogout()
   }
 
   const isCustomer     = user?.role === "CUSTOMER"
@@ -227,7 +234,7 @@ export const Navbar = () => {
 
                     <div style={{ borderTop: `1px solid ${gray[100]}`, padding: "6px 0" }}>
                       <button
-                        onClick={handleLogout}
+                        onClick={() => setConfirmingLogout(true)}
                         style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "10px 16px", fontSize: "13px", fontWeight: 500, color: "#dc2626", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
                         onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#fef2f2")}
                         onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
@@ -298,6 +305,13 @@ export const Navbar = () => {
         </div>
 
       </nav>
+
+      {confirmingLogout && (
+        <LogoutConfirmModal
+          onConfirm={confirmLogout}
+          onClose={() => setConfirmingLogout(false)}
+        />
+      )}
     </>
   )
 }

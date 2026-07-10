@@ -1,14 +1,16 @@
+import { useState } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
 import { useAuthStore } from "@/store/authStore"
 import { useDashboardStats } from "@/hooks/useReports"
 import {
   LayoutDashboard, Pill, Tags, Factory, Users, Package,
   ClipboardList, ArrowLeftRight, BarChart2, UserCog,
-  LogOut, FileHeart, Truck, AlertTriangle,
+  LogOut, FileHeart, Truck, AlertTriangle, X,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { User } from "@/types"
 import { cn } from "@/lib/utils"
+import { LogoutConfirmModal } from "@/components/LogoutConfirmModal"
 
 type Role = User["role"]
 
@@ -73,10 +75,16 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ]
 
-const Sidebar = () => {
+interface SidebarProps {
+  open: boolean
+  onClose: () => void
+}
+
+const Sidebar = ({ open, onClose }: SidebarProps) => {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const { data: stats } = useDashboardStats()
+  const [confirmingLogout, setConfirmingLogout] = useState(false)
 
   const badgeCounts = {
     orders: stats?.orders.pending ?? 0,
@@ -92,6 +100,11 @@ const Sidebar = () => {
     navigate("/login")
   }
 
+  const confirmLogout = () => {
+    setConfirmingLogout(false)
+    handleLogout()
+  }
+
   const visibleGroups = NAV_GROUPS
     .map(group => ({
       ...group,
@@ -100,79 +113,111 @@ const Sidebar = () => {
     .filter(group => group.items.length > 0)
 
   return (
-    <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col border-r bg-sidebar">
-      {/* Logo */}
-      <div className="flex h-14 shrink-0 items-center gap-2.5 border-b px-4">
-        <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary">
-          <Pill size={14} className="text-primary-foreground" />
-        </div>
-        <span className="text-sm font-bold text-sidebar-foreground">ePharmacy</span>
-      </div>
+    <>
+      {/* Mobile backdrop */}
+      {open && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+        />
+      )}
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3">
-        {visibleGroups.map(group => (
-          <div key={group.label} className="mb-3">
-            <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {group.label}
-            </p>
-            <ul className="flex flex-col gap-0.5">
-              {group.items.map(({ label, path, icon: Icon, badge }) => {
-                const count = badge ? badgeCounts[badge] : 0
-                return (
-                  <li key={path}>
-                    <NavLink
-                      to={path}
-                      end={path === "/admin"}
-                      className={({ isActive }) =>
-                        cn(
-                          "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors",
-                          isActive
-                            ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                        )
-                      }
-                    >
-                      <Icon size={14} className="shrink-0" />
-                      <span className="flex-1">{label}</span>
-                      {count > 0 && (
-                        <span className="tnum rounded-full bg-warning-soft px-1.5 text-[11px] font-semibold text-warning">
-                          {count}
-                        </span>
-                      )}
-                    </NavLink>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
-      </nav>
-
-      {/* User + Logout */}
-      <div className="shrink-0 border-t p-2">
-        <div className="flex items-center gap-2.5 rounded-md px-2 py-2">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft">
-            <span className="text-xs font-semibold text-accent-foreground">
-              {user?.first_name?.[0]?.toUpperCase() ?? "A"}
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-medium text-sidebar-foreground">
-              {user?.first_name} {user?.last_name}
-            </p>
-            <p className="text-[11px] text-muted-foreground">{user?.role}</p>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r bg-sidebar transition-transform duration-200 ease-out",
+          "lg:sticky lg:top-0 lg:z-0 lg:w-56 lg:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        {/* Logo */}
+        <div className="flex h-14 shrink-0 items-center justify-between gap-2.5 border-b px-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary">
+              <Pill size={14} className="text-primary-foreground" />
+            </div>
+            <span className="text-sm font-bold text-sidebar-foreground">ePharmacy</span>
           </div>
           <button
-            onClick={handleLogout}
-            title="Log out"
-            className="flex shrink-0 items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive-soft hover:text-destructive"
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground hover:bg-muted lg:hidden"
           >
-            <LogOut size={14} />
+            <X size={16} />
           </button>
         </div>
-      </div>
-    </aside>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
+          {visibleGroups.map(group => (
+            <div key={group.label} className="mb-3">
+              <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {group.label}
+              </p>
+              <ul className="flex flex-col gap-0.5">
+                {group.items.map(({ label, path, icon: Icon, badge }) => {
+                  const count = badge ? badgeCounts[badge] : 0
+                  return (
+                    <li key={path}>
+                      <NavLink
+                        to={path}
+                        end={path === "/admin"}
+                        onClick={onClose}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors",
+                            isActive
+                              ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )
+                        }
+                      >
+                        <Icon size={14} className="shrink-0" />
+                        <span className="flex-1">{label}</span>
+                        {count > 0 && (
+                          <span className="tnum rounded-full bg-warning-soft px-1.5 text-[11px] font-semibold text-warning">
+                            {count}
+                          </span>
+                        )}
+                      </NavLink>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+
+        {/* User + Logout */}
+        <div className="shrink-0 border-t p-2">
+          <div className="flex items-center gap-2.5 rounded-md px-2 py-2">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft">
+              <span className="text-xs font-semibold text-accent-foreground">
+                {user?.first_name?.[0]?.toUpperCase() ?? "A"}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-medium text-sidebar-foreground">
+                {user?.first_name} {user?.last_name}
+              </p>
+              <p className="text-[11px] text-muted-foreground">{user?.role}</p>
+            </div>
+            <button
+              onClick={() => setConfirmingLogout(true)}
+              title="Log out"
+              className="flex shrink-0 items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive-soft hover:text-destructive"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        </div>
+
+        {confirmingLogout && (
+          <LogoutConfirmModal
+            onConfirm={confirmLogout}
+            onClose={() => setConfirmingLogout(false)}
+          />
+        )}
+      </aside>
+    </>
   )
 }
 

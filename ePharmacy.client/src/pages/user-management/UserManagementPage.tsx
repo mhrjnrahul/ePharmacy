@@ -252,8 +252,12 @@ const UserManagementPage = () => {
 
   return (
     <div>
+      <style>{`
+        .user-mgmt-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        @media (max-width: 640px) { .user-mgmt-summary-grid { grid-template-columns: 1fr; } }
+      `}</style>
       {/* Summary cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
+      <div className="user-mgmt-summary-grid">
         {(["ADMIN", "STAFF", "CUSTOMER"] as const).map(role => {
           const meta = roleMeta[role]
           return (
@@ -271,7 +275,7 @@ const UserManagementPage = () => {
       </div>
 
       {/* Page header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
         <div>
           <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>User Management</h1>
           <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
@@ -289,18 +293,18 @@ const UserManagementPage = () => {
       {/* Filters */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center", flexWrap: "wrap" }}>
         <input
-          style={{ ...inputStyle, width: "220px" }}
+          style={{ ...inputStyle, width: "220px", maxWidth: "100%" }}
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or email…"
         />
-        <select style={{ ...inputStyle, width: "140px", cursor: "pointer" }} value={filterRole} onChange={e => setFilterRole(e.target.value as any)}>
+        <select style={{ ...inputStyle, width: "140px", maxWidth: "100%", cursor: "pointer" }} value={filterRole} onChange={e => setFilterRole(e.target.value as any)}>
           <option value="">All roles</option>
           <option value="ADMIN">Admin</option>
           <option value="STAFF">Staff</option>
           <option value="CUSTOMER">Customer</option>
         </select>
-        <select style={{ ...inputStyle, width: "140px", cursor: "pointer" }} value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
+        <select style={{ ...inputStyle, width: "140px", maxWidth: "100%", cursor: "pointer" }} value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
           <option value="">All statuses</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
@@ -325,8 +329,8 @@ const UserManagementPage = () => {
           <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>Try adjusting your search or filters.</p>
         </div>
       ) : (
-        <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}`, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}`, overflowX: "auto" }}>
+          <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: gray[50], borderBottom: `1px solid ${gray[200]}` }}>
                 {["User", "Email", "Role", "Status", "Actions"].map(h => (

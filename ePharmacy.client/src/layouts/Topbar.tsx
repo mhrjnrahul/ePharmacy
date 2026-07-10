@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom"
-import { Bell } from "lucide-react"
+import { Bell, Menu } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { useDashboardStats } from "@/hooks/useReports"
 
@@ -19,7 +19,11 @@ const routeTitles: Record<string, string> = {
   "/admin/reports":           "Reports",
 }
 
-const Topbar = () => {
+interface TopbarProps {
+  onMenuClick: () => void
+}
+
+const Topbar = ({ onMenuClick }: TopbarProps) => {
   const { pathname } = useLocation()
   const { user } = useAuthStore()
   const { data: stats } = useDashboardStats()
@@ -31,10 +35,18 @@ const Topbar = () => {
     (stats?.inventory.expired_count ?? 0)
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-6">
-      <h1 className="text-sm font-semibold text-foreground">{title}</h1>
+    <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 sm:px-6">
+      <div className="flex items-center gap-2 min-w-0">
+        <button
+          onClick={onMenuClick}
+          className="-ml-1 shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+        >
+          <Menu size={18} />
+        </button>
+        <h1 className="truncate text-sm font-semibold text-foreground">{title}</h1>
+      </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         <Link
           to="/admin/alerts"
           title={alertCount > 0 ? `${alertCount} stock alerts` : "Stock alerts"}
@@ -48,7 +60,7 @@ const Topbar = () => {
           )}
         </Link>
 
-        <div className="text-right">
+        <div className="hidden text-right sm:block">
           <p className="text-xs font-medium text-foreground">
             {user?.first_name} {user?.last_name}
           </p>

@@ -23,8 +23,9 @@ const PaymentSuccessPage = () => {
       try {
         const decoded = JSON.parse(atob(rawData)) as Record<string, string>
         const record = await paymentsApi.verify(decoded)
-        if (record.status === "COMPLETED") {
-          setTransactionId(record.transaction_id)
+        // A repeat verify (e.g. page refresh) returns {detail: "Payment already verified."}
+        if (record.status === "completed" || !record.status) {
+          setTransactionId(record.transaction_id ?? null)
           setState("success")
         } else {
           setState("failed")
@@ -50,8 +51,8 @@ const PaymentSuccessPage = () => {
       </header>
 
       {/* Content */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
-        <div style={{ width: "100%", maxWidth: "440px", backgroundColor: "#fff", borderRadius: "20px", border: `1px solid ${gray[200]}`, padding: "48px 40px", textAlign: "center", boxShadow: "0 8px 32px rgba(0,0,0,0.06)" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+        <div style={{ width: "100%", maxWidth: "440px", backgroundColor: "#fff", borderRadius: "20px", border: `1px solid ${gray[200]}`, padding: "40px 24px", textAlign: "center", boxShadow: "0 8px 32px rgba(0,0,0,0.06)", boxSizing: "border-box" }}>
 
           {state === "verifying" && (
             <>

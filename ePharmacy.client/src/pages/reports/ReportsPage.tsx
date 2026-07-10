@@ -183,7 +183,8 @@ const ReportsPage = () => {
           ) : !top || top.results.length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">No sales in this period.</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[360px] text-sm">
               <thead>
                 <tr className="border-b text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-2">Medicine</th>
@@ -201,6 +202,7 @@ const ReportsPage = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

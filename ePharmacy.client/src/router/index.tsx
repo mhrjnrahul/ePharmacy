@@ -18,6 +18,7 @@ import CheckoutPage from "@/pages/checkout/CheckoutPage"
 import PaymentSuccessPage from "@/pages/payment/PaymentSuccessPage"
 
 // Customer account
+import AccountOverviewPage from "@/pages/account/AccountOverviewPage"
 import AccountOrdersPage from "@/pages/account/AccountOrdersPage"
 import AccountOrderDetailPage from "@/pages/account/AccountOrderDetailPage"
 import AccountPrescriptionsPage from "@/pages/account/AccountPrescriptionsPage"
@@ -83,7 +84,7 @@ export const router = createBrowserRouter([
                 path: "account",
                 element: <AccountLayout />,
                 children: [
-                  { index: true,          element: <Navigate to="/account/orders" replace /> },
+                  { index: true,          element: <AccountOverviewPage /> },
                   { path: "orders",       element: <AccountOrdersPage /> },
                   { path: "orders/:id",   element: <AccountOrderDetailPage /> },
                   { path: "prescriptions", element: <AccountPrescriptionsPage /> },

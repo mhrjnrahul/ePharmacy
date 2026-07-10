@@ -1,42 +1,28 @@
-import { NavLink, Outlet } from "react-router-dom"
-import { Package, FileHeart, UserRound } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState } from "react"
+import { Outlet } from "react-router-dom"
+import { Menu } from "lucide-react"
+import { AccountSidebar } from "@/components/account/AccountSidebar"
 
-const TABS = [
-  { label: "My orders",        path: "/account/orders",        icon: Package },
-  { label: "My prescriptions", path: "/account/prescriptions", icon: FileHeart },
-  { label: "Profile",          path: "/account/profile",       icon: UserRound },
-]
+/** Customer account shell — sidebar nav (Overview, Orders, Prescriptions, Profile) inside the storefront. */
+const AccountLayout = () => {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
-/** Customer account shell — slim horizontal tab nav inside the storefront. */
-const AccountLayout = () => (
-  <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-5 sm:py-8">
-    <h1 className="text-xl font-bold tracking-tight text-foreground">My account</h1>
+  return (
+    <div className="flex w-full">
+      <AccountSidebar open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
-    <nav className="mt-4 flex gap-1 overflow-x-auto border-b">
-      {TABS.map(({ label, path, icon: Icon }) => (
-        <NavLink
-          key={path}
-          to={path}
-          className={({ isActive }) =>
-            cn(
-              "-mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors",
-              isActive
-                ? "border-primary font-medium text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )
-          }
+      <div className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        <button
+          onClick={() => setMobileNavOpen(true)}
+          className="mb-4 flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted lg:hidden"
         >
-          <Icon size={14} />
-          {label}
-        </NavLink>
-      ))}
-    </nav>
+          <Menu size={16} /> Account menu
+        </button>
 
-    <div className="py-6">
-      <Outlet />
+        <Outlet />
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 export default AccountLayout

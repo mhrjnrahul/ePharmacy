@@ -5,7 +5,7 @@ import { useDashboardStats } from "@/hooks/useReports"
 import {
   LayoutDashboard, Pill, Tags, Factory, Users, Package,
   ClipboardList, ArrowLeftRight, BarChart2, UserCog,
-  LogOut, FileHeart, Truck, AlertTriangle, X,
+  LogOut, FileHeart, Truck, AlertTriangle, X, ChevronDown,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { User } from "@/types"
@@ -85,6 +85,15 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
   const navigate = useNavigate()
   const { data: stats } = useDashboardStats()
   const [confirmingLogout, setConfirmingLogout] = useState(false)
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+
+  const toggleGroup = (label: string) =>
+    setCollapsedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      return next
+    })
 
   const badgeCounts = {
     orders: stats?.orders.pending ?? 0,
@@ -147,43 +156,55 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-2 py-3">
-          {visibleGroups.map(group => (
-            <div key={group.label} className="mb-3">
-              <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {group.label}
-              </p>
-              <ul className="flex flex-col gap-0.5">
-                {group.items.map(({ label, path, icon: Icon, badge }) => {
-                  const count = badge ? badgeCounts[badge] : 0
-                  return (
-                    <li key={path}>
-                      <NavLink
-                        to={path}
-                        end={path === "/admin"}
-                        onClick={onClose}
-                        className={({ isActive }) =>
-                          cn(
-                            "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors",
-                            isActive
-                              ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                          )
-                        }
-                      >
-                        <Icon size={14} className="shrink-0" />
-                        <span className="flex-1">{label}</span>
-                        {count > 0 && (
-                          <span className="tnum rounded-full bg-warning-soft px-1.5 text-[11px] font-semibold text-warning">
-                            {count}
-                          </span>
-                        )}
-                      </NavLink>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          ))}
+          {visibleGroups.map(group => {
+            const collapsed = collapsedGroups.has(group.label)
+            return (
+              <div key={group.label} className="mb-3">
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className="mb-1 flex w-full items-center justify-between rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {group.label}
+                  <ChevronDown
+                    size={12}
+                    className={cn("transition-transform", collapsed && "-rotate-90")}
+                  />
+                </button>
+                {!collapsed && (
+                  <ul className="flex flex-col gap-0.5">
+                    {group.items.map(({ label, path, icon: Icon, badge }) => {
+                      const count = badge ? badgeCounts[badge] : 0
+                      return (
+                        <li key={path}>
+                          <NavLink
+                            to={path}
+                            end={path === "/admin"}
+                            onClick={onClose}
+                            className={({ isActive }) =>
+                              cn(
+                                "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors",
+                                isActive
+                                  ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                              )
+                            }
+                          >
+                            <Icon size={14} className="shrink-0" />
+                            <span className="flex-1">{label}</span>
+                            {count > 0 && (
+                              <span className="tnum rounded-full bg-warning-soft px-1.5 text-[11px] font-semibold text-warning">
+                                {count}
+                              </span>
+                            )}
+                          </NavLink>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
         </nav>
 
         {/* User + Logout */}

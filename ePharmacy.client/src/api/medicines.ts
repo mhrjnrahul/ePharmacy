@@ -1,12 +1,27 @@
 import { api } from "./axios"
-import type { Medicine, MedicineListItem, CreateMedicineRequest, UpdateMedicineRequest } from "@/types/medicine"
+import type {
+  Medicine,
+  MedicineListItem,
+  MedicineListParams,
+  CreateMedicineRequest,
+  UpdateMedicineRequest,
+  RecommendationResponse,
+} from "@/types/medicine"
 
 export const medicinesApi = {
-  getAll: () =>
-    api.get<MedicineListItem[]>("/api/catalog/medicines/").then(r => r.data),
+  getAll: (params?: MedicineListParams) =>
+    api.get<MedicineListItem[]>("/api/catalog/medicines/", { params }).then(r => r.data),
 
   getById: (id: string) =>
     api.get<Medicine>(`/api/catalog/medicines/${id}/`).then(r => r.data),
+
+  // Public — best-sellers for the landing/shop pages
+  getPopular: (limit = 8) =>
+    api.get<RecommendationResponse>("/api/catalog/medicines/popular/", { params: { limit } }).then(r => r.data),
+
+  // Public — "frequently bought together" for a medicine detail page
+  getRecommendations: (id: string) =>
+    api.get<RecommendationResponse>(`/api/catalog/medicines/${id}/recommendations/`).then(r => r.data),
 
   create: (data: CreateMedicineRequest) =>
     api.post<Medicine>("/api/catalog/medicines/", data).then(r => r.data),
@@ -16,4 +31,10 @@ export const medicinesApi = {
 
   delete: (id: string) =>
     api.delete(`/api/catalog/medicines/${id}/`),
+
+  // Staff — recompute frequently-bought-together weights from order history
+  rebuildRecommendations: () =>
+    api.post<{ detail: string; created: number; updated: number }>(
+      "/api/catalog/recommendations/rebuild/"
+    ).then(r => r.data),
 }

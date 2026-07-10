@@ -17,7 +17,11 @@ from .serializers import (
     MedicineRelationSerializer,
 )
 from core.models import Role
-from .recommendations import get_recommendations, get_cart_recommendations
+from .recommendations import (
+    get_recommendations,
+    get_cart_recommendations,
+    update_relation_weights,
+)
 
 
 def _medicine_with_pricing_queryset():
@@ -245,6 +249,90 @@ class MedicineRecommendationView(APIView):
         return Response(
             {
                 "medicine": medicine.name,
+                "results": MedicineListSerializer(
+                    ordered, many=True, context={"request": request}
+                ).data,
+            }
+        )
+
+
+class RecommendationRebuildView(APIView):
+    """
+    POST /api/catalog/recommendations/rebuild/  — admin/staff only
+
+    Recalculates FREQUENTLY_BOUGHT_TOGETHER relation weights from the
+    current order history. Same job as the `update_recommendation_weight`
+    management command, exposed so it can be triggered from the dashboard.
+    """
+
+    permission_classes = [IsAdminOrStaff]
+
+    def post(self, request):
+        result = update_relation_weights()
+        return Response(
+            {
+                "detail": "Recommendation weights rebuilt.",
+                "created": result["created"],
+                "updated": result["updated"],
+            }
+        )
+
+
+class PopularMedicineView(APIView):
+    """
+    GET /api/catalog/medicines/popular/?limit=8
+    Public. Best-selling medicines by quantity across confirmed+ orders.
+    Used on the landing page where no cart/medicine context exists yet.
+    Falls back to newest active medicines when there is not enough
+    sales history to fill the list.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from django.db.models import Sum
+        from orders.models import OrderItem
+
+        try:
+            limit = int(request.query_params.get("limit", 8))
+        except ValueError:
+            limit = 8
+        limit = max(1, min(limit, 24))
+
+        sold = (
+            OrderItem.objects.filter(
+                order__status__in=[
+                    "confirmed",
+                    "processing",
+                    "shipped",
+                    "delivered",
+                ],
+                batch__medicine__is_active=True,
+            )
+            .values("batch__medicine_id")
+            .annotate(total_sold=Sum("quantity"))
+            .order_by("-total_sold")[:limit]
+        )
+        popular_ids = [str(row["batch__medicine_id"]) for row in sold]
+
+        medicines = _medicine_with_pricing_queryset().filter(
+            id__in=popular_ids, is_active=True
+        )
+        medicine_map = {str(m.id): m for m in medicines}
+        ordered = [medicine_map[mid] for mid in popular_ids if mid in medicine_map]
+
+        # Top up with newest active medicines if sales history is thin
+        if len(ordered) < limit:
+            fillers = (
+                _medicine_with_pricing_queryset()
+                .filter(is_active=True)
+                .exclude(id__in=popular_ids)
+                .order_by("-created_at")[: limit - len(ordered)]
+            )
+            ordered.extend(fillers)
+
+        return Response(
+            {
                 "results": MedicineListSerializer(
                     ordered, many=True, context={"request": request}
                 ).data,

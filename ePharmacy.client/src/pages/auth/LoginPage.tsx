@@ -19,9 +19,10 @@ const LoginPage = () => {
     onSuccess: (data) => {
       setTokens(data.access, data.refresh);
 
-      setUser(data.user);
+      // login response has no email field — carry over the one they signed in with
+      setUser({ ...data.user, email });
 
-      navigate(data.user.role === "CUSTOMER" ? "/" : "/dashboard");
+      navigate(data.user.role === "CUSTOMER" ? "/" : "/admin");
     },
     onError: () => setError("Invalid email or password."),
   });

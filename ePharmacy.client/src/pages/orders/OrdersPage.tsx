@@ -150,7 +150,7 @@ const OrderDrawer = ({ orderId, onClose }: OrderDrawerProps) => {
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.3)", zIndex: 40 }} />
-      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "520px", backgroundColor: "#fff", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "min(520px, 100vw)", backgroundColor: "#fff", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" }}>
 
         {/* Header */}
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${gray[200]}`, flexShrink: 0 }}>
@@ -383,8 +383,8 @@ const OrdersPage = () => {
           </p>
         </div>
       ) : (
-        <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}`, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}`, overflowX: "auto" }}>
+          <table style={{ width: "100%", minWidth: "720px", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: gray[50], borderBottom: `1px solid ${gray[200]}` }}>
                 {["Order ID", "Status", "Amount", "Delivery Address", "Date", "Actions"].map(h => (

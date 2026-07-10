@@ -67,3 +67,43 @@ export interface StockAdjustRequest {
   direction: "in" | "out"
   notes: string
 }
+
+export interface LowStockAlert {
+  batch_id: string
+  medicine: string
+  batch_number: string
+  quantity_available: number
+}
+
+export interface ExpiringBatchAlert {
+  batch_id: string
+  medicine: string
+  batch_number: string
+  expiry_date: string
+  quantity_available: number
+}
+
+export interface ExpiredBatchAlert {
+  batch_id: string
+  medicine: string
+  batch_number: string
+  expiry_date: string
+}
+
+export interface InventorySummary {
+  total_active_batches: number
+  low_stock_threshold: number
+  expiry_days: number
+  low_stock_count: number
+  low_stock_batches: LowStockAlert[]
+  expiring_soon_count: number
+  expiring_soon_batches: ExpiringBatchAlert[]
+  expired_active_count: number
+  expired_batches: ExpiredBatchAlert[]
+}
+
+export interface WriteOffResponse {
+  detail: string
+  quantity_written_off: number
+  movement: StockMovement | null
+}

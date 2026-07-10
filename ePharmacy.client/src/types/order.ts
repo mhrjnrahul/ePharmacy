@@ -41,9 +41,10 @@ export interface CheckoutResponse {
   created_at: string
 }
 
-export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED"
+export type PaymentStatus = "pending" | "completed" | "failed" | "refunded"
 
-export interface PaymentInitiateResponse {
+/** Form fields for eSewa's hosted payment page. `payment_url` is the form action, not a field. */
+export interface EsewaFormPayload {
   amount: string
   tax_amount: string
   total_amount: string
@@ -55,7 +56,13 @@ export interface PaymentInitiateResponse {
   failure_url: string
   signed_field_names: string
   signature: string
+  payment_url: string
   [key: string]: string  // allow extra fields eSewa may add
+}
+
+export interface PaymentInitiateResponse {
+  payment_id: string
+  esewa_payload: EsewaFormPayload
 }
 
 export interface PaymentRecord {

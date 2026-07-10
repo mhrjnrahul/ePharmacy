@@ -44,16 +44,29 @@ const SummaryCards = () => {
     { label: "Expired (Active)", value: data?.expired_active_count   ?? "—", icon: <AlertTriangle size={18} color={red[600]} />,  bg: red[50],   iconBg: red[100]   },
   ]
 
+  const summaryStyle = (
+    <style>{`
+      .inventory-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+      @media (max-width: 900px) { .inventory-summary-grid { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 480px) { .inventory-summary-grid { grid-template-columns: 1fr; } }
+    `}</style>
+  )
+
   if (isLoading) return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
-      {[...Array(4)].map((_, i) => (
-        <div key={i} style={{ height: "80px", backgroundColor: gray[100], borderRadius: "12px" }} />
-      ))}
-    </div>
+    <>
+      {summaryStyle}
+      <div className="inventory-summary-grid">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} style={{ height: "80px", backgroundColor: gray[100], borderRadius: "12px" }} />
+        ))}
+      </div>
+    </>
   )
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
+    <>
+      {summaryStyle}
+      <div className="inventory-summary-grid">
       {cards.map(card => (
         <div key={card.label} style={{ backgroundColor: card.bg, borderRadius: "12px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "14px" }}>
           <div style={{ width: "40px", height: "40px", borderRadius: "10px", backgroundColor: card.iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -65,7 +78,8 @@ const SummaryCards = () => {
           </div>
         </div>
       ))}
-    </div>
+      </div>
+    </>
   )
 }
 
@@ -391,7 +405,7 @@ const MovementsDrawer = ({ batch, medicineName, onClose }: MovementsDrawerProps)
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.3)", zIndex: 40 }} />
-      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "480px", backgroundColor: "#fff", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "min(480px, 100vw)", backgroundColor: "#fff", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" }}>
 
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${gray[200]}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
@@ -507,7 +521,7 @@ const InventoryPage = () => {
       <SummaryCards />
 
       {/* Page header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
         <div>
           <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>Inventory</h1>
           <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
@@ -523,10 +537,10 @@ const InventoryPage = () => {
       </div>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center", flexWrap: "wrap" }}>
         <Filter size={14} color={gray[400]} />
         <select
-          style={{ ...inputStyle, width: "240px", cursor: "pointer" }}
+          style={{ ...inputStyle, width: "240px", maxWidth: "100%", cursor: "pointer" }}
           value={filterMedicine}
           onChange={e => setFilterMedicine(e.target.value)}
         >
@@ -536,7 +550,7 @@ const InventoryPage = () => {
           ))}
         </select>
         <select
-          style={{ ...inputStyle, width: "140px", cursor: "pointer" }}
+          style={{ ...inputStyle, width: "140px", maxWidth: "100%", cursor: "pointer" }}
           value={filterActive}
           onChange={e => setFilterActive(e.target.value as "all" | "active" | "inactive")}
         >
@@ -573,8 +587,8 @@ const InventoryPage = () => {
           )}
         </div>
       ) : (
-        <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}`, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}`, overflowX: "auto" }}>
+          <table style={{ width: "100%", minWidth: "820px", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: gray[50], borderBottom: `1px solid ${gray[200]}` }}>
                 {["Medicine", "Batch No.", "Expiry", "Stock", "Selling Price", "Status", "Actions"].map(h => (

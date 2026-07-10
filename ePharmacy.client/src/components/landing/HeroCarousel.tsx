@@ -5,6 +5,7 @@ import {
   ShieldCheck, Pill, Truck, FileText,
   Package, CheckCircle2,
 } from "lucide-react"
+import { useAuthStore } from "@/store/authStore"
 import { green, gray } from "./tokens"
 
 // ── Right-side visuals ────────────────────────────────────────────────────────
@@ -150,7 +151,8 @@ interface SlideData {
   badge: string
   headline: React.ReactNode
   subtext: string
-  ctaPrimary: { label: string; to: string }
+  /** `to` is used for signed-out visitors; `authTo` for already-authenticated users (skip registration). */
+  ctaPrimary: { label: string; to: string; authTo: string }
   ctaSecondary: { label: string; href: string }
   visual: React.ReactNode
   gradient: string
@@ -162,7 +164,7 @@ const SLIDES: SlideData[] = [
     badge: "Licensed & Verified Pharmacy",
     headline: <>Your Health, <span style={{ color: green[600] }}>Delivered</span> to Your Door</>,
     subtext: "Nepal's most trusted online pharmacy. Genuine medicines, vitamins and healthcare products delivered to your door.",
-    ctaPrimary:   { label: "Get Started Free",    to: "/register" },
+    ctaPrimary:   { label: "Get Started Free",    to: "/register", authTo: "/shop" },
     ctaSecondary: { label: "How it works",         href: "#how"    },
     visual: <OrderVisual />,
     gradient: `linear-gradient(135deg, ${green[50]} 0%, #ffffff 60%)`,
@@ -172,7 +174,7 @@ const SLIDES: SlideData[] = [
     badge: "Hassle-Free Prescription Service",
     headline: <>Upload Prescription, <span style={{ color: green[600] }}>We Handle</span> the Rest</>,
     subtext: "Simply upload your doctor's prescription. Our licensed pharmacists review and dispatch your medicines safely.",
-    ctaPrimary:   { label: "Upload Prescription", to: "/register" },
+    ctaPrimary:   { label: "Upload Prescription", to: "/register", authTo: "/account/prescriptions" },
     ctaSecondary: { label: "Learn more",           href: "#how"    },
     visual: <PrescriptionVisual />,
     gradient: `linear-gradient(135deg, #f0fdf4 0%, ${green[50]} 60%)`,
@@ -182,22 +184,40 @@ const SLIDES: SlideData[] = [
     badge: "Free Delivery on Orders Over Rs. 500",
     headline: <>Fast Delivery <span style={{ color: green[600] }}>Across Nepal</span></>,
     subtext: "Same-day delivery in Kathmandu valley. Next-day delivery across Nepal. Track your order every step of the way.",
-    ctaPrimary:   { label: "Order Now",        to: "/register" },
+    ctaPrimary:   { label: "Order Now",        to: "/register", authTo: "/shop" },
     ctaSecondary: { label: "Track an order",   href: "#"       },
     visual: <DeliveryVisual />,
     gradient: `linear-gradient(135deg, ${green[50]} 0%, #f0fdf4 60%)`,
   },
 ]
 
-const STATS = [
-  { value: "10,000+", label: "Medicines" },
-  { value: "50,000+", label: "Customers" },
-  { value: "24/7",    label: "Support"   },
-]
+// ── Responsive styles (breakpoints match Navbar/CheckoutPage: 768px) ───────────
+const HERO_STYLES = `
+  .hero-slide    { padding: 96px 24px; }
+  .hero-grid     { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+  .hero-headline { font-size: 46px; }
+  .hero-cta-row  { display: flex; gap: 12px; flex-wrap: wrap; }
+  .hero-nav-btn  { width: 40px; height: 40px; }
+
+  @media (max-width: 900px) {
+    .hero-grid   { grid-template-columns: 1fr; gap: 28px; }
+    .hero-visual { display: none; }
+  }
+  @media (max-width: 768px) {
+    .hero-slide    { padding: 56px 20px 72px; }
+    .hero-headline { font-size: 32px; }
+    .hero-nav-btn  { width: 32px; height: 32px; }
+  }
+  @media (max-width: 420px) {
+    .hero-headline { font-size: 26px; }
+    .hero-cta-row > * { flex: 1 1 auto; justify-content: center; }
+  }
+`
 
 // ── Carousel ───────────────────────────────────────────────────────────────────
 
 export const HeroCarousel = () => {
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   const [current, setCurrent] = useState(0)
   const [paused,  setPaused]  = useState(false)
 
@@ -206,9 +226,12 @@ export const HeroCarousel = () => {
 
   useEffect(() => {
     if (paused) return
+    // Restart the countdown on every slide change so a manual prev/next/dot
+    // click doesn't get immediately overridden by an autoplay tick that was
+    // already mid-flight — otherwise the buttons feel like they double-skip.
     const id = setInterval(next, 5000)
     return () => clearInterval(id)
-  }, [paused, next])
+  }, [paused, next, current])
 
   return (
     <div
@@ -217,6 +240,8 @@ export const HeroCarousel = () => {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
+      <style>{HERO_STYLES}</style>
+
       {/* ── Sliding track ── */}
       <div style={{
         display: "flex",
@@ -226,8 +251,8 @@ export const HeroCarousel = () => {
       }}>
         {SLIDES.map((slide, i) => (
           <div key={i} style={{ width: `${100 / SLIDES.length}%`, flex: "0 0 auto" }}>
-            <section style={{ background: slide.gradient, padding: "96px 24px 96px" }}>
-              <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "64px", alignItems: "center" }}>
+            <section className="hero-slide" style={{ background: slide.gradient }}>
+              <div className="hero-grid" style={{ maxWidth: "1200px", margin: "0 auto" }}>
 
                 {/* Left content */}
                 <div>
@@ -236,7 +261,7 @@ export const HeroCarousel = () => {
                     <span style={{ fontSize: "12px", fontWeight: 600, color: green[700] }}>{slide.badge}</span>
                   </div>
 
-                  <h1 style={{ fontSize: "46px", fontWeight: 800, color: gray[900], lineHeight: 1.15, margin: "0 0 18px" }}>
+                  <h1 className="hero-headline" style={{ fontWeight: 800, color: gray[900], lineHeight: 1.15, margin: "0 0 18px" }}>
                     {slide.headline}
                   </h1>
 
@@ -244,9 +269,9 @@ export const HeroCarousel = () => {
                     {slide.subtext}
                   </p>
 
-                  <div style={{ display: "flex", gap: "12px" }}>
+                  <div className="hero-cta-row">
                     <Link
-                      to={slide.ctaPrimary.to}
+                      to={isAuthenticated ? slide.ctaPrimary.authTo : slide.ctaPrimary.to}
                       style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 26px", backgroundColor: green[600], color: "#fff", borderRadius: "10px", fontSize: "14px", fontWeight: 600, textDecoration: "none" }}
                     >
                       {slide.ctaPrimary.label}
@@ -258,19 +283,10 @@ export const HeroCarousel = () => {
                       {slide.ctaSecondary.label}
                     </a>
                   </div>
-
-                  <div style={{ display: "flex", gap: "32px", marginTop: "44px" }}>
-                    {STATS.map(({ value, label }) => (
-                      <div key={label}>
-                        <p style={{ fontSize: "22px", fontWeight: 700, color: green[600], margin: "0 0 2px" }}>{value}</p>
-                        <p style={{ fontSize: "12px", color: gray[500], margin: 0 }}>{label}</p>
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
-                {/* Right visual */}
-                <div style={{ position: "relative" }}>
+                {/* Right visual — hidden on narrow screens to keep the hero short */}
+                <div className="hero-visual" style={{ position: "relative" }}>
                   {slide.visual}
                 </div>
 
@@ -284,7 +300,8 @@ export const HeroCarousel = () => {
       <button
         onClick={prev}
         aria-label="Previous slide"
-        style={{ position: "absolute", left: "20px", top: "50%", transform: "translateY(-50%)", width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "#fff", border: `1px solid ${gray[200]}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", zIndex: 10 }}
+        className="hero-nav-btn"
+        style={{ position: "absolute", left: "20px", top: "50%", transform: "translateY(-50%)", borderRadius: "50%", backgroundColor: "#fff", border: `1px solid ${gray[200]}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", zIndex: 10 }}
       >
         <ChevronLeft size={18} color={gray[700]} />
       </button>
@@ -293,7 +310,8 @@ export const HeroCarousel = () => {
       <button
         onClick={next}
         aria-label="Next slide"
-        style={{ position: "absolute", right: "20px", top: "50%", transform: "translateY(-50%)", width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "#fff", border: `1px solid ${gray[200]}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", zIndex: 10 }}
+        className="hero-nav-btn"
+        style={{ position: "absolute", right: "20px", top: "50%", transform: "translateY(-50%)", borderRadius: "50%", backgroundColor: "#fff", border: `1px solid ${gray[200]}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", zIndex: 10 }}
       >
         <ChevronRight size={18} color={gray[700]} />
       </button>

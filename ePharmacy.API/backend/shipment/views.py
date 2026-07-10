@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
+from core.models import Role
 from core.permissions import IsAdminOrStaff, IsOwnerOrAdminOrStaff
 from .models import Shipment
 from .serializers import (
@@ -28,7 +29,7 @@ class ShipmentListCreateView(generics.ListCreateAPIView):
 
     def get_serializer_class(self):
         if self.request.method == "POST":
-            if self.request.user.role not in ("admin", "staff"):
+            if self.request.user.role not in (Role.ADMIN, Role.STAFF):
                 from rest_framework.exceptions import PermissionDenied
 
                 raise PermissionDenied()
@@ -38,7 +39,7 @@ class ShipmentListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
         qs = Shipment.objects.select_related("order__user")
-        if user.role in ("admin", "staff"):
+        if user.role in (Role.ADMIN, Role.STAFF):
             return qs.all()
         return qs.filter(order__user=user)
 
@@ -56,7 +57,7 @@ class ShipmentDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         user = self.request.user
         qs = Shipment.objects.select_related("order__user")
-        if user.role in ("admin", "staff"):
+        if user.role in (Role.ADMIN, Role.STAFF):
             return qs.all()
         return qs.filter(order__user=user)
 
@@ -137,7 +138,7 @@ class OrderShipmentView(generics.RetrieveAPIView):
         user = self.request.user
         qs = Shipment.objects.select_related("order__user")
 
-        if user.role not in ("admin", "staff"):
+        if user.role not in (Role.ADMIN, Role.STAFF):
             qs = qs.filter(order__user=user)
 
         try:

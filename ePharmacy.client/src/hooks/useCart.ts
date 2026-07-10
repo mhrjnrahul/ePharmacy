@@ -14,6 +14,15 @@ export const useCart = () => {
   })
 }
 
+export const useCartRecommendations = () => {
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  return useQuery({
+    queryKey: [...CART_KEY, "recommendations"],
+    queryFn: cartApi.getRecommendations,
+    enabled: isAuthenticated,
+  })
+}
+
 export const useAddToCart = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -37,7 +46,7 @@ export const useRemoveFromCart = () => {
 export const useUpdateCartQuantity = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ medicineId, quantity }: { medicineId: string; quantity: number }) => {
+    mutationFn: async ({ medicineId, quantity }: { medicineId: string; quantity: number }): Promise<unknown> => {
       if (quantity <= 0) return cartApi.remove(medicineId)
       return cartApi.add({ medicine: medicineId, quantity })
     },

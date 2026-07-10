@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
+from core.models import Role
 from core.permissions import IsAdminOrStaff, IsOwnerOrAdminOrStaff
 from .models import Order
 from .serializers import (
@@ -111,7 +112,7 @@ class OrderListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('admin', 'staff'):
+        if user.role in (Role.ADMIN, Role.STAFF):
             return Order.objects.select_related('user').all()
         return Order.objects.filter(user=user)
 
@@ -148,7 +149,7 @@ class OrderCancelView(APIView):
             return order
 
         user = request.user
-        is_staff = user.role in ('admin', 'staff')
+        is_staff = user.role in (Role.ADMIN, Role.STAFF)
 
         # Customers can only cancel PENDING orders
         if not is_staff and order.status not in Order.CUSTOMER_CANCELLABLE_STATUSES:
@@ -182,7 +183,7 @@ class OrderCancelView(APIView):
             return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         # Customers can only access their own orders
-        if user.role not in ('admin', 'staff') and order.user != user:
+        if user.role not in (Role.ADMIN, Role.STAFF) and order.user != user:
             return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         return order

@@ -304,7 +304,7 @@ const MedicinesPage = () => {
   return (
     <div>
       {/* Page header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "24px" }}>
         <div>
           <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>Medicines</h1>
           <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
@@ -332,8 +332,8 @@ const MedicinesPage = () => {
           </button>
         </div>
       ) : (
-        <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}`, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}`, overflowX: "auto" }}>
+          <table style={{ width: "100%", minWidth: "860px", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: gray[50], borderBottom: `1px solid ${gray[200]}` }}>
                 {["Medicine", "Dosage Form", "Category", "Manufacturer", "Rx", "Status", ""].map(h => (

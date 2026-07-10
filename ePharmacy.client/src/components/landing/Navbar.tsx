@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Pill, Menu, X, ChevronDown, LayoutDashboard, ShoppingBag, LogOut, FileHeart, UserRound } from "lucide-react"
+import { Pill, Menu, X, ChevronDown, LayoutDashboard, ShoppingBag, LogOut } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { CartTrigger, CartDrawer } from "./CartDrawer"
 import { LogoutConfirmModal } from "@/components/LogoutConfirmModal"
@@ -81,8 +81,8 @@ export const Navbar = () => {
   }
 
   const isCustomer     = user?.role === "CUSTOMER"
-  const dashboardPath  = isCustomer ? "/account/orders" : "/admin"
-  const dashboardLabel = isCustomer ? "My Orders" : "Dashboard"
+  const dashboardPath  = isCustomer ? "/account" : "/admin"
+  const dashboardLabel = isCustomer ? "Overview" : "Dashboard"
   const initials       = getInitials(user?.first_name ?? "", user?.last_name ?? "")
   const fullName       = `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim()
 
@@ -206,7 +206,8 @@ export const Navbar = () => {
                       </div>
                     </div>
 
-                    {/* Menu items */}
+                    {/* Menu items — customers land in the account sidebar, which handles
+                        further navigation to Orders/Prescriptions/Profile from there */}
                     <div style={{ padding: "6px 0" }}>
                       <DropdownItem
                         icon={isCustomer ? <ShoppingBag size={15} color={gray[500]} /> : <LayoutDashboard size={15} color={gray[500]} />}
@@ -214,22 +215,6 @@ export const Navbar = () => {
                         to={dashboardPath}
                         onClick={() => setDropdownOpen(false)}
                       />
-                      {isCustomer && (
-                        <>
-                          <DropdownItem
-                            icon={<FileHeart size={15} color={gray[500]} />}
-                            label="My Prescriptions"
-                            to="/account/prescriptions"
-                            onClick={() => setDropdownOpen(false)}
-                          />
-                          <DropdownItem
-                            icon={<UserRound size={15} color={gray[500]} />}
-                            label="Profile"
-                            to="/account/profile"
-                            onClick={() => setDropdownOpen(false)}
-                          />
-                        </>
-                      )}
                     </div>
 
                     <div style={{ borderTop: `1px solid ${gray[100]}`, padding: "6px 0" }}>

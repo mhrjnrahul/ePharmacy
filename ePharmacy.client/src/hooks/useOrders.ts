@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { ordersApi } from "@/api/orders"
 
 export const ORDERS_KEY = ["orders"] as const
+// Kept in sync manually with useShipments.ts's SHIPMENTS_KEY — importing it
+// here would create a circular import (useShipments.ts imports ORDERS_KEY).
+const SHIPMENTS_KEY = ["shipments"] as const
 
 export const useOrders = (params?: { status?: string }) =>
   useQuery({
@@ -21,7 +24,10 @@ export const useUpdateOrderStatus = () => {
   return useMutation({
     mutationFn: ({ id, status, reason }: { id: string; status: string; reason?: string }) =>
       ordersApi.updateStatus(id, { status, reason }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ORDERS_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ORDERS_KEY })
+      qc.invalidateQueries({ queryKey: SHIPMENTS_KEY })
+    },
   })
 }
 

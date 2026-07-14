@@ -226,8 +226,37 @@ class OrderStatusUpdateView(APIView):
         elif new_status == Order.Status.CONFIRMED:
             # This triggers SALE_OUT stock deduction
             order.confirm(confirmed_by=request.user)
+        elif new_status == Order.Status.SHIPPED:
+            order.status = new_status
+            order.save(update_fields=['status', 'updated_at'])
+            self._sync_shipment_dispatched(order, request.user)
+        elif new_status == Order.Status.DELIVERED:
+            from shipment.models import Shipment
+
+            shipment = Shipment.objects.filter(order=order).first()
+            if shipment and shipment.status != Shipment.Status.DELIVERED:
+                shipment.mark_delivered()  # also syncs order.status -> DELIVERED
+            else:
+                order.status = new_status
+                order.save(update_fields=['status', 'updated_at'])
         else:
             order.status = new_status
             order.save(update_fields=['status', 'updated_at'])
 
         return Response(OrderDetailSerializer(order).data)
+
+    @staticmethod
+    def _sync_shipment_dispatched(order, user):
+        """Keep the Shipment record in step when an order is marked SHIPPED
+        directly from the Orders page instead of via the Shipments workflow."""
+        from shipment.models import Shipment
+
+        shipment, _created = Shipment.objects.get_or_create(
+            order=order,
+            defaults={
+                'delivery_address': order.delivery_address,
+                'created_by': user,
+            },
+        )
+        if shipment.status == Shipment.Status.PREPARING:
+            shipment.dispatch()

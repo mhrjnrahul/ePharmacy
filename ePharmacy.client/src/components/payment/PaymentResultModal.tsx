@@ -1,15 +1,43 @@
-import { CheckCircle, XCircle } from "lucide-react"
+import { CheckCircle, XCircle, AlertTriangle } from "lucide-react"
 import { green, gray } from "@/components/landing/tokens"
 
 interface Props {
-  status: "success" | "failed"
+  status: "success" | "failed" | "conflict"
   transactionId?: string
+  message?: string
   onClose: () => void
 }
 
+const CONTENT = {
+  success: {
+    icon: CheckCircle,
+    iconColor: green[600],
+    iconBg: green[50],
+    title: "Payment Successful!",
+    body: "Your order has been placed and payment confirmed.",
+  },
+  failed: {
+    icon: XCircle,
+    iconColor: "#dc2626",
+    iconBg: "#fef2f2",
+    title: "Payment Failed",
+    body: "We couldn't verify your payment. Your cart has not been charged.",
+  },
+  // Money was captured by eSewa but the order couldn't be confirmed (e.g. a
+  // stock conflict) — distinct from "failed" because the customer WAS charged.
+  conflict: {
+    icon: AlertTriangle,
+    iconColor: "#d97706",
+    iconBg: "#fffbeb",
+    title: "Payment Received — Action Needed",
+    body: "Your payment went through, but we ran into an issue confirming your order. Please contact support for help.",
+  },
+} as const
+
 /** Shown over the shop page after returning from eSewa — replaces the old standalone success page. */
-export const PaymentResultModal = ({ status, transactionId, onClose }: Props) => {
+export const PaymentResultModal = ({ status, transactionId, message, onClose }: Props) => {
   const isSuccess = status === "success"
+  const { icon: Icon, iconColor, iconBg, title, body } = CONTENT[status]
 
   return (
     <div
@@ -29,22 +57,18 @@ export const PaymentResultModal = ({ status, transactionId, onClose }: Props) =>
       }}>
         <div style={{
           width: "64px", height: "64px", borderRadius: "50%",
-          backgroundColor: isSuccess ? green[50] : "#fef2f2",
+          backgroundColor: iconBg,
           display: "flex", alignItems: "center", justifyContent: "center",
           margin: "0 auto 18px",
         }}>
-          {isSuccess
-            ? <CheckCircle size={32} color={green[600]} />
-            : <XCircle size={32} color="#dc2626" />}
+          <Icon size={32} color={iconColor} />
         </div>
 
         <h2 style={{ fontSize: "19px", fontWeight: 800, color: gray[900], margin: "0 0 8px" }}>
-          {isSuccess ? "Payment Successful!" : "Payment Failed"}
+          {title}
         </h2>
         <p style={{ fontSize: "13px", color: gray[500], margin: "0 0 4px", lineHeight: 1.6 }}>
-          {isSuccess
-            ? "Your order has been placed and payment confirmed."
-            : "We couldn't verify your payment. Your cart has not been charged."}
+          {message ?? body}
         </p>
         {isSuccess && transactionId && (
           <p style={{ fontSize: "11px", color: gray[500], margin: "8px 0 0" }}>
@@ -65,7 +89,7 @@ export const PaymentResultModal = ({ status, transactionId, onClose }: Props) =>
           onMouseEnter={e => { if (isSuccess) e.currentTarget.style.backgroundColor = green[700] }}
           onMouseLeave={e => { if (isSuccess) e.currentTarget.style.backgroundColor = green[600] }}
         >
-          {isSuccess ? "Continue Shopping" : "Try Again"}
+          {isSuccess ? "Continue Shopping" : status === "conflict" ? "Got it" : "Try Again"}
         </button>
       </div>
     </div>

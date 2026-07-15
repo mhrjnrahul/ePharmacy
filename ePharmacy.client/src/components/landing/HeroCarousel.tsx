@@ -153,7 +153,8 @@ interface SlideData {
   subtext: string
   /** `to` is used for signed-out visitors; `authTo` for already-authenticated users (skip registration). */
   ctaPrimary: { label: string; to: string; authTo: string }
-  ctaSecondary: { label: string; href: string }
+  /** Either a same-page hash anchor (`href`), or an app route (`to`/`authTo`, same convention as ctaPrimary). */
+  ctaSecondary: { label: string; href: string } | { label: string; to: string; authTo: string }
   visual: React.ReactNode
   gradient: string
 }
@@ -185,7 +186,7 @@ const SLIDES: SlideData[] = [
     headline: <>Fast Delivery <span style={{ color: green[600] }}>Across Nepal</span></>,
     subtext: "Same-day delivery in Kathmandu valley. Next-day delivery across Nepal. Track your order every step of the way.",
     ctaPrimary:   { label: "Order Now",        to: "/register", authTo: "/shop" },
-    ctaSecondary: { label: "Track an order",   href: "#"       },
+    ctaSecondary: { label: "Track an order",   to: "/login",    authTo: "/account/orders" },
     visual: <DeliveryVisual />,
     gradient: `linear-gradient(135deg, ${green[50]} 0%, #f0fdf4 60%)`,
   },
@@ -249,8 +250,11 @@ export const HeroCarousel = () => {
         transform: `translateX(-${current * (100 / SLIDES.length)}%)`,
         transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)",
       }}>
-        {SLIDES.map((slide, i) => (
-          <div key={i} style={{ width: `${100 / SLIDES.length}%`, flex: "0 0 auto" }}>
+        {SLIDES.map((slide, i) => {
+          const isActive = i === current
+          const secondaryStyle = { display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 26px", backgroundColor: "#fff", color: gray[700], borderRadius: "10px", fontSize: "14px", fontWeight: 600, textDecoration: "none", border: `1px solid ${gray[200]}` }
+          return (
+          <div key={i} style={{ width: `${100 / SLIDES.length}%`, flex: "0 0 auto" }} aria-hidden={!isActive}>
             <section className="hero-slide" style={{ background: slide.gradient }}>
               <div className="hero-grid" style={{ maxWidth: "1200px", margin: "0 auto" }}>
 
@@ -261,9 +265,17 @@ export const HeroCarousel = () => {
                     <span style={{ fontSize: "12px", fontWeight: 600, color: green[700] }}>{slide.badge}</span>
                   </div>
 
-                  <h1 className="hero-headline" style={{ fontWeight: 800, color: gray[900], lineHeight: 1.15, margin: "0 0 18px" }}>
-                    {slide.headline}
-                  </h1>
+                  {/* Only the active slide's headline is a real <h1> — the page should
+                      only ever have one, and inactive slides shouldn't be announced. */}
+                  {isActive ? (
+                    <h1 className="hero-headline" style={{ fontWeight: 800, color: gray[900], lineHeight: 1.15, margin: "0 0 18px" }}>
+                      {slide.headline}
+                    </h1>
+                  ) : (
+                    <div className="hero-headline" style={{ fontWeight: 800, color: gray[900], lineHeight: 1.15, margin: "0 0 18px" }}>
+                      {slide.headline}
+                    </div>
+                  )}
 
                   <p style={{ fontSize: "16px", color: gray[500], lineHeight: 1.7, margin: "0 0 32px", maxWidth: "460px" }}>
                     {slide.subtext}
@@ -272,16 +284,28 @@ export const HeroCarousel = () => {
                   <div className="hero-cta-row">
                     <Link
                       to={isAuthenticated ? slide.ctaPrimary.authTo : slide.ctaPrimary.to}
+                      tabIndex={isActive ? undefined : -1}
                       style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 26px", backgroundColor: green[600], color: "#fff", borderRadius: "10px", fontSize: "14px", fontWeight: 600, textDecoration: "none" }}
                     >
                       {slide.ctaPrimary.label}
                     </Link>
-                    <a
-                      href={slide.ctaSecondary.href}
-                      style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 26px", backgroundColor: "#fff", color: gray[700], borderRadius: "10px", fontSize: "14px", fontWeight: 600, textDecoration: "none", border: `1px solid ${gray[200]}` }}
-                    >
-                      {slide.ctaSecondary.label}
-                    </a>
+                    {"href" in slide.ctaSecondary ? (
+                      <a
+                        href={slide.ctaSecondary.href}
+                        tabIndex={isActive ? undefined : -1}
+                        style={secondaryStyle}
+                      >
+                        {slide.ctaSecondary.label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={isAuthenticated ? slide.ctaSecondary.authTo : slide.ctaSecondary.to}
+                        tabIndex={isActive ? undefined : -1}
+                        style={secondaryStyle}
+                      >
+                        {slide.ctaSecondary.label}
+                      </Link>
+                    )}
                   </div>
                 </div>
 
@@ -293,7 +317,8 @@ export const HeroCarousel = () => {
               </div>
             </section>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* ── Prev button ── */}

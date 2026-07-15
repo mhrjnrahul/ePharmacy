@@ -8,6 +8,8 @@ import { useOrderShipment } from "@/hooks/useShipments"
 import { paymentsApi, submitEsewaForm } from "@/api/payments"
 import { OrderStatusTag, ShipmentStatusTag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
+import { CancelOrderConfirmModal } from "@/components/account/CancelOrderConfirmModal"
+import { PageMeta } from "@/components/PageMeta"
 import { toast } from "@/store/toastStore"
 import type { ShipmentStatus } from "@/types/shipment"
 import { cn } from "@/lib/utils"
@@ -99,6 +101,7 @@ const AccountOrderDetailPage = () => {
   const { data: order, isLoading, isError } = useOrderDetail(id ?? null)
   const cancel = useCancelOrder()
   const [paying, setPaying] = useState(false)
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
 
   if (isLoading) return <div className="h-64 animate-pulse rounded-lg bg-muted" />
 
@@ -130,6 +133,7 @@ const AccountOrderDetailPage = () => {
   const handleCancel = async () => {
     try {
       await cancel.mutateAsync({ id: order.id })
+      setConfirmingCancel(false)
       toast.success("Order cancelled.")
     } catch (err: any) {
       toast.error(err?.response?.data?.detail ?? "Could not cancel the order.")
@@ -138,6 +142,7 @@ const AccountOrderDetailPage = () => {
 
   return (
     <div className="space-y-4">
+      <PageMeta title={`Order #${order.id.slice(0, 8)}`} />
       <Link
         to="/account/orders"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -164,7 +169,7 @@ const AccountOrderDetailPage = () => {
                   Pay with eSewa
                 </button>
                 <button
-                  onClick={handleCancel}
+                  onClick={() => setConfirmingCancel(true)}
                   disabled={cancel.isPending}
                   className="flex items-center gap-1.5 rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive-soft disabled:opacity-60"
                 >
@@ -216,6 +221,15 @@ const AccountOrderDetailPage = () => {
           </tfoot>
         </table>
       </div>
+
+      {confirmingCancel && (
+        <CancelOrderConfirmModal
+          orderId={order.id}
+          onConfirm={handleCancel}
+          onClose={() => setConfirmingCancel(false)}
+          isPending={cancel.isPending}
+        />
+      )}
     </div>
   )
 }

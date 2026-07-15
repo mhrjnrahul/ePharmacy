@@ -3,7 +3,8 @@ import { createPortal } from "react-dom"
 import { ShoppingCart, X, Trash2, Package, ArrowRight, Minus, Plus, ChevronDown, Sparkles, Check, Loader2, Pill } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useCart, useCartRecommendations, useAddToCart, useRemoveFromCart, useUpdateCartQuantity } from "@/hooks/useCart"
-import { mediaUrl, formatPrice } from "@/components/shop/ShopCard"
+import { formatPrice } from "@/components/shop/ShopCard"
+import { mediaUrl } from "@/lib/apiUrl"
 import { toast } from "@/store/toastStore"
 import type { MedicineListItem } from "@/types/medicine"
 import { green, gray } from "./tokens"
@@ -22,6 +23,7 @@ export const CartTrigger = () => {
     <button
       onClick={openCart}
       title="Cart"
+      aria-label={count > 0 ? `Cart, ${count} item${count === 1 ? "" : "s"}` : "Cart"}
       style={{
         position: "relative", background: "none", border: "none",
         cursor: "pointer", padding: "6px", borderRadius: "8px",
@@ -292,6 +294,7 @@ const CartItem = ({
       <button
         onClick={onRemove}
         title="Remove item"
+        aria-label={`Remove ${name} from cart`}
         style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "4px", display: "flex", flexShrink: 0, borderRadius: "6px" }}
         onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#fef2f2")}
         onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
@@ -312,6 +315,7 @@ const CartItem = ({
           onClick={() => onQtyChange(qty - 1)}
           disabled={busy}
           title={qty === 1 ? "Remove item" : "Decrease quantity"}
+          aria-label={qty === 1 ? `Remove ${name} from cart` : `Decrease quantity of ${name}`}
           style={{ width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: busy ? "wait" : "pointer", color: qty === 1 ? "#dc2626" : gray[700], transition: "background 0.12s" }}
           onMouseEnter={e => (e.currentTarget.style.backgroundColor = qty === 1 ? "#fef2f2" : gray[100])}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
@@ -325,6 +329,7 @@ const CartItem = ({
           onClick={() => onQtyChange(qty + 1)}
           disabled={busy}
           title="Increase quantity"
+          aria-label={`Increase quantity of ${name}`}
           style={{ width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: busy ? "wait" : "pointer", color: gray[700], transition: "background 0.12s" }}
           onMouseEnter={e => (e.currentTarget.style.backgroundColor = gray[100])}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}

@@ -6,6 +6,7 @@ import { ordersApi } from "@/api/orders"
 import { paymentsApi, submitEsewaForm } from "@/api/payments"
 import { toast } from "@/store/toastStore"
 import { extractErrorMessage } from "@/lib/errors"
+import { PageMeta } from "@/components/PageMeta"
 import { green, gray } from "@/components/landing/tokens"
 
 // Matches the backend's CheckoutSerializer.delivery_address min_length
@@ -58,6 +59,7 @@ const CheckoutPage = () => {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: gray[50], fontFamily: "var(--font-sans, system-ui, sans-serif)" }}>
+      <PageMeta title="Checkout" />
 
       {/* Top bar */}
       <header style={{ backgroundColor: "#fff", borderBottom: `1px solid ${gray[200]}`, padding: "0 24px", height: "60px", display: "flex", alignItems: "center", gap: "16px" }}>

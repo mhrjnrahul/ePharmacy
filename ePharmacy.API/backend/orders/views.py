@@ -74,8 +74,9 @@ class CheckoutView(APIView):
     - Validates prescription coverage for each medicine that requires it
     - Resolves FIFO batch for each cart item
     - Locks unit_price from batch at this moment
-    - Clears the cart on success
-    - Stock is NOT deducted here — deduction happens when staff confirms
+    - Cart is cleared once the order is CONFIRMED (payment verified), not here
+    - Stock is NOT deducted here — deduction happens when the order is confirmed
+    - Fails if the customer already has another unpaid PENDING order
     """
     permission_classes = [IsAuthenticated]
 

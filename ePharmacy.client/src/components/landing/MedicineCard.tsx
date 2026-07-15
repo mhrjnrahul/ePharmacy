@@ -5,9 +5,8 @@ import { useAuthStore } from "@/store/authStore"
 import { useAddToCart, useCart } from "@/hooks/useCart"
 import { openCart } from "./CartDrawer"
 import { toast } from "@/store/toastStore"
+import { mediaUrl } from "@/lib/apiUrl"
 import { green, gray } from "./tokens"
-
-const BASE_URL = "http://127.0.0.1:8000"
 
 interface Props {
   medicine: MedicineListItem
@@ -25,9 +24,7 @@ export const MedicineCard = ({ medicine, onDetails }: Props) => {
   const { mutate: addToCart, isPending: adding, reset } = useAddToCart()
   const [justAdded, setJustAdded] = useState(false)
 
-  const imageUrl = medicine.image
-    ? medicine.image.startsWith("http") ? medicine.image : `${BASE_URL}${medicine.image}`
-    : null
+  const imageUrl = mediaUrl(medicine.image)
 
   const handleCartClick = () => {
     // Already in cart — open drawer instead of re-posting
@@ -125,23 +122,28 @@ export const MedicineCard = ({ medicine, onDetails }: Props) => {
               disabled={adding}
               title={
                 isInCart ? `${cartItem!.quantity} in cart — click to adjust`
-                : medicine.is_active ? (medicine.requires_prescription ? "Prescription required" : "Add to cart")
+                : medicine.in_stock ? (medicine.requires_prescription ? "Prescription required" : "Add to cart")
                 : "Out of stock"
+              }
+              aria-label={
+                isInCart ? `${medicine.name}, ${cartItem!.quantity} in cart, click to adjust`
+                : medicine.in_stock ? `Add ${medicine.name} to cart`
+                : `${medicine.name} is out of stock`
               }
               style={{
                 width: "38px", flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                backgroundColor: isInCart ? green[50] : justAdded ? green[50] : !medicine.is_active ? gray[100] : green[600],
-                color: isInCart ? green[700] : justAdded ? green[700] : !medicine.is_active ? gray[400] : "#fff",
+                backgroundColor: isInCart ? green[50] : justAdded ? green[50] : !medicine.in_stock ? gray[100] : green[600],
+                color: isInCart ? green[700] : justAdded ? green[700] : !medicine.in_stock ? gray[400] : "#fff",
                 border: isInCart || justAdded ? `1.5px solid ${green[300]}` : "none",
                 borderRadius: "8px",
-                cursor: adding ? "wait" : !medicine.is_active ? "not-allowed" : "pointer",
+                cursor: adding ? "wait" : !medicine.in_stock ? "not-allowed" : "pointer",
                 transition: "all 0.2s",
                 opacity: adding ? 0.6 : 1,
                 position: "relative",
               }}
-              onMouseEnter={e => { if (!isInCart && !justAdded && medicine.is_active) e.currentTarget.style.backgroundColor = green[700] }}
-              onMouseLeave={e => { if (!isInCart && !justAdded && medicine.is_active) e.currentTarget.style.backgroundColor = green[600] }}
+              onMouseEnter={e => { if (!isInCart && !justAdded && medicine.in_stock) e.currentTarget.style.backgroundColor = green[700] }}
+              onMouseLeave={e => { if (!isInCart && !justAdded && medicine.in_stock) e.currentTarget.style.backgroundColor = green[600] }}
             >
               {justAdded || isInCart ? <Check size={14} /> : <ShoppingCart size={14} />}
               {/* Qty badge when in cart */}

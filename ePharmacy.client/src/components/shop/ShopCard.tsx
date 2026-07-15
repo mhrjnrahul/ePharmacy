@@ -6,11 +6,7 @@ import { useAddToCart, useCart } from "@/hooks/useCart"
 import { openCart } from "@/components/landing/CartDrawer"
 import { toast } from "@/store/toastStore"
 import { RxTag, StockTag } from "@/components/ui/tag"
-
-const API_BASE = "http://127.0.0.1:8000"
-
-export const mediaUrl = (path: string | null) =>
-  path ? (path.startsWith("http") ? path : `${API_BASE}${path}`) : null
+import { mediaUrl } from "@/lib/apiUrl"
 
 export const formatPrice = (price: string | null) =>
   price === null ? null : `Rs. ${Number(price).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`

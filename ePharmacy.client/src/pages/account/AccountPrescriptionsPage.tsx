@@ -4,15 +4,14 @@ import { usePrescriptions, usePrescriptionDetail, useUploadPrescription } from "
 import { PrescriptionStatusTag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pagination } from "@/components/ui/pagination"
+import { PageMeta } from "@/components/PageMeta"
 import { toast } from "@/store/toastStore"
+import { mediaUrl } from "@/lib/apiUrl"
 
 const PAGE_SIZE = 10
 
-const API_BASE = "http://127.0.0.1:8000"
 const MAX_SIZE_MB = 10
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
-
-const fileUrl = (path: string) => (path.startsWith("http") ? path : `${API_BASE}${path}`)
 
 // ── Upload card ──────────────────────────────────────────────────────────────
 const UploadCard = () => {
@@ -108,7 +107,7 @@ const PrescriptionRow = ({ id, status, created_at }: { id: string; status: any; 
           ) : (
             <div className="space-y-3">
               <a
-                href={fileUrl(detail.image)}
+                href={mediaUrl(detail.image) ?? undefined}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
@@ -165,6 +164,7 @@ const AccountPrescriptionsPage = () => {
 
   return (
     <div className="space-y-4">
+      <PageMeta title="My Prescriptions" />
       <UploadCard />
 
       {isLoading ? (

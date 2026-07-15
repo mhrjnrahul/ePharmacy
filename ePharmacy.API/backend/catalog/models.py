@@ -57,6 +57,11 @@ class Medicine(TimeStampedModel):
         max_length=50,
         help_text="e.g. 500mg, 10mg/5ml",
     )
+    composition = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Comma-separated active ingredients, e.g. 'Paracetamol, Caffeine'",
+    )
     image = models.ImageField(
         upload_to="medicines/",
         null=True,

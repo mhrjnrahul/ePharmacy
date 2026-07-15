@@ -7,11 +7,23 @@ import { useUploadPrescription } from "@/hooks/usePrescriptions"
 import { openCart } from "./CartDrawer"
 import { useAuthStore } from "@/store/authStore"
 import { toast } from "@/store/toastStore"
+import { mediaUrl } from "@/lib/apiUrl"
 import { green, gray } from "./tokens"
 
-const BASE_URL = "http://127.0.0.1:8000"
 const ACCEPTED_RX_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
 const MAX_RX_SIZE_MB = 10
+
+// This modal had no breakpoints at all — the 2-col meta grid stayed 2-col at
+// every width, cramped on narrow phones (e.g. "Manufacturer" + a long name
+// with no room to breathe below ~360px).
+const MODAL_STYLES = `
+  .medicine-modal-body { padding: 24px 28px 28px; }
+  .medicine-modal-meta { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 480px) {
+    .medicine-modal-body { padding: 18px 18px 22px; }
+    .medicine-modal-meta { grid-template-columns: 1fr; }
+  }
+`
 
 // Lets a customer submit a prescription right from the medicine they're viewing,
 // instead of forcing a trip to the separate "My Prescriptions" page first.
@@ -107,9 +119,7 @@ export const MedicineDetailModal = ({ medicineId, onClose }: Props) => {
 
   if (!medicineId) return null
 
-  const imageUrl = medicine?.image
-    ? medicine.image.startsWith("http") ? medicine.image : `${BASE_URL}${medicine.image}`
-    : null
+  const imageUrl = mediaUrl(medicine?.image)
 
   const handleAddToCart = () => {
     if (!medicine) return
@@ -163,6 +173,7 @@ export const MedicineDetailModal = ({ medicineId, onClose }: Props) => {
         maxHeight: "90vh", display: "flex", flexDirection: "column",
         position: "relative",
       }}>
+        <style>{MODAL_STYLES}</style>
 
         {/* Close */}
         <button
@@ -209,7 +220,7 @@ export const MedicineDetailModal = ({ medicineId, onClose }: Props) => {
                 )}
               </div>
 
-              <div style={{ padding: "24px 28px 28px" }}>
+              <div className="medicine-modal-body">
 
                 {/* Badges */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "12px" }}>
@@ -229,11 +240,11 @@ export const MedicineDetailModal = ({ medicineId, onClose }: Props) => {
                 </h2>
 
                 {/* Meta grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", margin: "20px 0", padding: "16px", backgroundColor: gray[50], borderRadius: "12px" }}>
+                <div className="medicine-modal-meta" style={{ display: "grid", gap: "12px 20px", margin: "20px 0", padding: "16px", backgroundColor: gray[50], borderRadius: "12px" }}>
                   <InfoRow label="Strength"     value={medicine.strength} />
                   <InfoRow label="Dosage Form"  value={medicine.dosage_form_display} />
                   <InfoRow label="Manufacturer" value={medicine.manufacturer_name} />
-                  <InfoRow label="Status"       value={medicine.is_active ? "In Stock" : "Out of Stock"} valueColor={medicine.is_active ? green[700] : "#ef4444"} />
+                  <InfoRow label="Status"       value={medicine.in_stock ? "In Stock" : "Out of Stock"} valueColor={medicine.in_stock ? green[700] : "#ef4444"} />
                 </div>
 
                 {/* Description */}
@@ -308,6 +319,7 @@ export const MedicineDetailModal = ({ medicineId, onClose }: Props) => {
                       <div style={{ display: "flex", alignItems: "center", border: `1px solid ${gray[200]}`, borderRadius: "10px", overflow: "hidden" }}>
                         <button
                           onClick={() => setQty(q => Math.max(1, q - 1))}
+                          aria-label="Decrease quantity"
                           style={{ padding: "10px 12px", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: gray[700] }}
                           onMouseEnter={e => (e.currentTarget.style.backgroundColor = gray[100])}
                           onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
@@ -317,6 +329,7 @@ export const MedicineDetailModal = ({ medicineId, onClose }: Props) => {
                         <span style={{ minWidth: "32px", textAlign: "center", fontSize: "14px", fontWeight: 600, color: gray[900] }}>{qty}</span>
                         <button
                           onClick={() => setQty(q => q + 1)}
+                          aria-label="Increase quantity"
                           style={{ padding: "10px 12px", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: gray[700] }}
                           onMouseEnter={e => (e.currentTarget.style.backgroundColor = gray[100])}
                           onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
@@ -328,23 +341,23 @@ export const MedicineDetailModal = ({ medicineId, onClose }: Props) => {
                       {/* Add to cart */}
                       <button
                         onClick={handleAddToCart}
-                        disabled={adding || !medicine.is_active}
+                        disabled={adding || !medicine.in_stock}
                         style={{
                           flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
                           padding: "11px",
-                          backgroundColor: medicine.is_active ? green[600] : gray[200],
-                          color: medicine.is_active ? "#fff" : gray[500],
+                          backgroundColor: medicine.in_stock ? green[600] : gray[200],
+                          color: medicine.in_stock ? "#fff" : gray[500],
                           border: "none", borderRadius: "10px",
                           fontSize: "14px", fontWeight: 600,
-                          cursor: medicine.is_active && !adding ? "pointer" : "not-allowed",
+                          cursor: medicine.in_stock && !adding ? "pointer" : "not-allowed",
                           opacity: adding ? 0.7 : 1,
                           transition: "background 0.15s",
                         }}
-                        onMouseEnter={e => { if (medicine.is_active && !adding) e.currentTarget.style.backgroundColor = green[700] }}
-                        onMouseLeave={e => { if (medicine.is_active) e.currentTarget.style.backgroundColor = green[600] }}
+                        onMouseEnter={e => { if (medicine.in_stock && !adding) e.currentTarget.style.backgroundColor = green[700] }}
+                        onMouseLeave={e => { if (medicine.in_stock) e.currentTarget.style.backgroundColor = green[600] }}
                       >
                         <ShoppingCart size={16} />
-                        {adding ? "Adding…" : medicine.is_active ? "Add to Cart" : "Out of Stock"}
+                        {adding ? "Adding…" : medicine.in_stock ? "Add to Cart" : "Out of Stock"}
                       </button>
                     </div>
                   )

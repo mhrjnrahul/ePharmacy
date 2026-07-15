@@ -1,3 +1,5 @@
+import uuid as uuid_lib
+
 from django.db import models
 from django.core.validators import MinValueValidator
 from core.models import TimeStampedModel
@@ -29,6 +31,15 @@ class Payment(TimeStampedModel):
         max_length=20,
         choices=Status.choices,
         default=Status.PENDING,
+    )
+    # eSewa-facing transaction id for the CURRENT payment attempt. Payment
+    # stays one-per-Order (see `order` above), but eSewa rejects a reused
+    # transaction_uuid — so this is regenerated on every "Pay with eSewa"
+    # retry rather than reusing `id`, which never changes for this row.
+    transaction_uuid = models.UUIDField(
+        default=uuid_lib.uuid4,
+        editable=False,
+        unique=True,
     )
     amount = models.DecimalField(
         max_digits=10,

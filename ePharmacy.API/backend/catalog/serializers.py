@@ -104,6 +104,7 @@ class MedicineListSerializer(MedicinePriceMixin, serializers.ModelSerializer):
             "available_stock",
             "in_stock",
             "requires_prescription",
+            "composition",
             "image",
             "is_active",
         ]
@@ -145,6 +146,7 @@ class MedicineDetailSerializer(
             "dosage_form",
             "dosage_form_display",
             "strength",
+            "composition",
             "image",
             "is_active",
             "created_at",

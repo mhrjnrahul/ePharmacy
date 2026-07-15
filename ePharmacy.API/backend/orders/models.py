@@ -182,6 +182,10 @@ class Order(TimeStampedModel):
                 reference=f'Order #{self.id} confirmed',
             )
 
+        # Cart is only cleared once payment is actually confirmed — see
+        # checkout() in services.py for why it's not cleared at PENDING time.
+        CartItem.objects.filter(cart__user=self.user).delete()
+
 
 class OrderItem(TimeStampedModel):
     """

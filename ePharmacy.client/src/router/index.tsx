@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary"
 import RootLayout from "@/layouts/RootLayout"
 import AppLayout from "@/layouts/AppLayout"
 import AuthLayout from "@/layouts/AuthLayout"
@@ -50,6 +51,7 @@ const OrdersRedirect = () => {
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
 
       // ── Landing (renders its own navbar/footer) ─────────────────────

@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query"
 import { registerUser } from "@/api/auth"
 import { extractErrorMessage } from "@/lib/errors"
 import { Loader2, Eye, EyeOff, CheckCircle2 } from "lucide-react"
+import { PageMeta } from "@/components/PageMeta"
 
 const RegisterPage = () => {
   const navigate = useNavigate()
@@ -55,6 +56,7 @@ const RegisterPage = () => {
   if (success) {
     return (
       <div style={{ textAlign: "center", padding: "32px 0" }}>
+        <PageMeta title="Create Account" />
         <div style={{ width: "64px", height: "64px", borderRadius: "50%", backgroundColor: "#ecfdf5", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
           <CheckCircle2 size={32} color="#059669" />
         </div>
@@ -73,6 +75,7 @@ const RegisterPage = () => {
 
   return (
     <div>
+      <PageMeta title="Create Account" />
       {/* Header */}
       <div style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "24px", fontWeight: 700, color: "#111827", margin: "0 0 6px 0" }}>

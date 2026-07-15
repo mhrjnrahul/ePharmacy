@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { loginUser } from "@/api/auth";
 import { useAuthStore } from "@/store/authStore";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import { PageMeta } from "@/components/PageMeta";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ const LoginPage = () => {
 
   return (
     <div>
+      <PageMeta title="Sign In" />
       {/* Header */}
       <div style={{ marginBottom: "32px" }}>
         <h1

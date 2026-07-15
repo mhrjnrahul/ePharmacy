@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Pill, Menu, X, ChevronDown, LayoutDashboard, ShoppingBag, LogOut } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
+import { useLogout } from "@/hooks/useLogout"
 import { CartTrigger, CartDrawer } from "./CartDrawer"
 import { LogoutConfirmModal } from "@/components/LogoutConfirmModal"
 import { green, gray } from "./tokens"
@@ -42,7 +43,8 @@ const STYLES = `
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export const Navbar = () => {
-  const { user, isAuthenticated, logout } = useAuthStore()
+  const { user, isAuthenticated } = useAuthStore()
+  const logout = useLogout()
   const navigate = useNavigate()
 
   const [mobileOpen,   setMobileOpen]   = useState(false)
@@ -115,15 +117,15 @@ export const Navbar = () => {
           {/* Desktop nav links */}
           <div className="nav-links">
             {NAV_LINKS.map(({ label, href }) => (
-              <a
+              <Link
                 key={label}
-                href={href}
+                to={href}
                 style={{ fontSize: "14px", color: gray[500], textDecoration: "none", fontWeight: 500, transition: "color 0.15s", whiteSpace: "nowrap" }}
                 onMouseEnter={e => (e.currentTarget.style.color = green[600])}
                 onMouseLeave={e => (e.currentTarget.style.color = gray[500])}
               >
                 {label}
-              </a>
+              </Link>
             ))}
           </div>
 
@@ -254,16 +256,16 @@ export const Navbar = () => {
           {/* Nav links */}
           <div style={{ padding: "8px 0" }}>
             {NAV_LINKS.map(({ label, href }) => (
-              <a
+              <Link
                 key={label}
-                href={href}
+                to={href}
                 onClick={() => setMobileOpen(false)}
                 style={{ display: "block", padding: "13px 24px", fontSize: "14px", color: gray[700], textDecoration: "none", fontWeight: 500 }}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = gray[50])}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 {label}
-              </a>
+              </Link>
             ))}
           </div>
 

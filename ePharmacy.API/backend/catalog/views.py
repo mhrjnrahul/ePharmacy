@@ -21,6 +21,7 @@ from .recommendations import (
     get_recommendations,
     get_cart_recommendations,
     update_relation_weights,
+    substitute_recommendations,
 )
 
 
@@ -254,6 +255,44 @@ class MedicineRecommendationView(APIView):
                 ).data,
             }
         )
+
+
+class MedicineSubstituteView(APIView):
+    """
+    GET /api/catalog/medicines/<id>/substitutes/
+    Public. Returns up to 6 IN-STOCK substitute medicines for this one,
+    ranked primarily by shared active-ingredient (composition) similarity
+    with a category/dosage-form fallback. Meant for "this is out of stock,
+    here's what else works" — unlike /recommendations/, results are always
+    filtered to medicines that currently have stock.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        try:
+            medicine = Medicine.objects.get(pk=pk, is_active=True)
+        except Medicine.DoesNotExist:
+            return Response({"detail": "Medicine not found."}, status=404)
+
+        candidate_ids = substitute_recommendations(str(pk), top_n=20)
+        if not candidate_ids:
+            return Response({"medicine": medicine.name, "results": []})
+
+        medicines = _medicine_with_pricing_queryset().filter(
+            id__in=candidate_ids, is_active=True
+        )
+        medicine_map = {str(m.id): m for m in medicines}
+        ordered = [
+            medicine_map[mid] for mid in candidate_ids if mid in medicine_map
+        ]
+
+        serialized = MedicineListSerializer(
+            ordered, many=True, context={"request": request}
+        ).data
+        in_stock_results = [row for row in serialized if row["in_stock"]][:6]
+
+        return Response({"medicine": medicine.name, "results": in_stock_results})
 
 
 class RecommendationRebuildView(APIView):

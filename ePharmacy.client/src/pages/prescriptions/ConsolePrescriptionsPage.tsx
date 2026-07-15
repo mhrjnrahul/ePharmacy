@@ -11,15 +11,10 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Pagination } from "@/components/ui/pagination"
 import { toast } from "@/store/toastStore"
 import { cn } from "@/lib/utils"
+import { mediaUrl as imageUrl } from "@/lib/apiUrl"
 import type { PrescriptionStatus } from "@/types/prescription"
 
 const PAGE_SIZE = 10
-
-const API_BASE = "http://127.0.0.1:8000"
-
-/** Prescription images are served relative to the backend host. */
-const imageUrl = (path: string) =>
-  path.startsWith("http") ? path : `${API_BASE}${path}`
 
 const STATUS_FILTERS: { value: PrescriptionStatus | ""; label: string }[] = [
   { value: "pending",  label: "Pending"  },
@@ -107,7 +102,7 @@ const ReviewPane = ({ id, onClose }: { id: string; onClose: () => void }) => {
               <p className="mb-3 text-sm text-foreground">{rx.customer_email}</p>
               {rx.image.toLowerCase().endsWith(".pdf") ? (
                 <a
-                  href={imageUrl(rx.image)}
+                  href={imageUrl(rx.image) ?? undefined}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
@@ -115,9 +110,9 @@ const ReviewPane = ({ id, onClose }: { id: string; onClose: () => void }) => {
                   Open PDF prescription <ExternalLink size={13} />
                 </a>
               ) : (
-                <a href={imageUrl(rx.image)} target="_blank" rel="noreferrer" title="Open full size">
+                <a href={imageUrl(rx.image) ?? undefined} target="_blank" rel="noreferrer" title="Open full size">
                   <img
-                    src={imageUrl(rx.image)}
+                    src={imageUrl(rx.image) ?? undefined}
                     alt={`Prescription from ${rx.customer_email}`}
                     className="max-h-[55vh] w-full rounded-md border object-contain"
                   />

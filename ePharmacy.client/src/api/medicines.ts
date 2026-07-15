@@ -29,6 +29,10 @@ export const medicinesApi = {
   getRecommendations: (id: string) =>
     api.get<RecommendationResponse>(`/api/catalog/medicines/${id}/recommendations/`).then(r => r.data),
 
+  // Public — in-stock substitutes, ranked by composition similarity (for out-of-stock medicines)
+  getSubstitutes: (id: string) =>
+    api.get<RecommendationResponse>(`/api/catalog/medicines/${id}/substitutes/`).then(r => r.data),
+
   create: (data: CreateMedicineRequest) =>
     api.post<Medicine>("/api/catalog/medicines/", data).then(r => r.data),
 

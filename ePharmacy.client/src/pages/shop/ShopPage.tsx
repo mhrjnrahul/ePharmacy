@@ -1,18 +1,21 @@
 import { useState, useEffect } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { Search, SlidersHorizontal, PackageSearch } from "lucide-react"
 import { useMedicines } from "@/hooks/useMedicines"
 import { useAllCategories } from "@/hooks/useCategories"
+import { useDebounce } from "@/hooks/useDebounce"
 import { ShopCard, ShopCardSkeleton } from "@/components/shop/ShopCard"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pagination } from "@/components/ui/pagination"
 import { PaymentResultModal } from "@/components/payment/PaymentResultModal"
+import { PageMeta } from "@/components/PageMeta"
 import { openCart } from "@/components/landing/CartDrawer"
 import type { DosageForm } from "@/types/medicine"
 
 interface PaymentNavState {
-  paymentStatus?: "success" | "failed"
+  paymentStatus?: "success" | "failed" | "conflict"
   transactionId?: string
+  message?: string
 }
 
 const PAGE_SIZE = 10
@@ -44,16 +47,21 @@ const ShopPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Deep-link support (e.g. Footer/CategoriesSection linking to /shop?category=<id>) —
+  // only used to seed the initial filter; the URL isn't kept in sync afterward.
+  const [searchParams] = useSearchParams()
   const [search, setSearch] = useState("")
-  const [category, setCategory] = useState("")
+  const [category, setCategory] = useState(() => searchParams.get("category") ?? "")
   const [dosageForm, setDosageForm] = useState<DosageForm | "">("")
   const [inStockOnly, setInStockOnly] = useState(false)
   const [rxFilter, setRxFilter] = useState<"" | "true" | "false">("")
   const [page, setPage] = useState(1)
 
+  const debouncedSearch = useDebounce(search)
+
   const { data: categories } = useAllCategories()
   const { data, isLoading, isError } = useMedicines({
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     category: category || undefined,
     dosage_form: dosageForm || undefined,
     requires_prescription: rxFilter === "" ? undefined : rxFilter === "true",
@@ -65,7 +73,7 @@ const ShopPage = () => {
 
   useEffect(() => {
     setPage(1)
-  }, [search, category, dosageForm, rxFilter])
+  }, [debouncedSearch, category, dosageForm, rxFilter])
 
   const visible = medicines.filter(
     m => m.is_active && (!inStockOnly || m.in_stock),
@@ -73,6 +81,7 @@ const ShopPage = () => {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-8">
+      <PageMeta title="Shop Medicines" description="Browse genuine, verified medicines available for delivery across Nepal." />
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Shop medicines</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -186,6 +195,7 @@ const ShopPage = () => {
         <PaymentResultModal
           status={paymentResult.paymentStatus}
           transactionId={paymentResult.transactionId}
+          message={paymentResult.message}
           onClose={() => setPaymentResult(null)}
         />
       )}

@@ -17,6 +17,7 @@ export interface Medicine {
   dosage_form: DosageForm
   dosage_form_display: string
   strength: string        // e.g. "500mg"
+  composition: string     // comma-separated active ingredients, e.g. "Paracetamol"
   image: string | null
   is_active: boolean
   created_at: string
@@ -35,6 +36,7 @@ export interface MedicineListItem {
   available_stock: number
   in_stock: boolean
   requires_prescription: boolean
+  composition: string
   image: string | null
   is_active: boolean
 }
@@ -63,6 +65,7 @@ export interface CreateMedicineRequest {
   requires_prescription: boolean
   dosage_form: DosageForm
   strength: string
+  composition: string
   is_active: boolean
 }
 

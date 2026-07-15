@@ -17,6 +17,7 @@ const CheckoutPage = () => {
 
   const [address, setAddress] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [simulating, setSimulating] = useState(false)
 
   const items = cart?.items ?? []
   const total = cart?.total ?? 0
@@ -26,19 +27,24 @@ const CheckoutPage = () => {
   const trimmedAddress = address.trim()
   const addressTooShort = trimmedAddress.length > 0 && trimmedAddress.length < MIN_ADDRESS_LENGTH
 
-  const handlePlaceOrder = async () => {
+  const validateBeforeSubmit = () => {
     if (!trimmedAddress) {
       toast.warning("Please enter a delivery address.")
-      return
+      return false
     }
     if (trimmedAddress.length < MIN_ADDRESS_LENGTH) {
       toast.warning(`Delivery address must be at least ${MIN_ADDRESS_LENGTH} characters — please include street, area, and city.`)
-      return
+      return false
     }
     if (isEmpty) {
       toast.warning("Your cart is empty.")
-      return
+      return false
     }
+    return true
+  }
+
+  const handlePlaceOrder = async () => {
+    if (!validateBeforeSubmit()) return
 
     setSubmitting(true)
     try {
@@ -53,6 +59,22 @@ const CheckoutPage = () => {
     } catch (err) {
       toast.error(extractErrorMessage(err, "Failed to place order. Please try again."))
       setSubmitting(false)
+    }
+  }
+
+  // DEV/TEST ONLY — backend 404s this outside DEBUG. Use while eSewa's
+  // sandbox is unreliable, to keep testing the rest of the order flow.
+  const handleSimulateSuccess = async () => {
+    if (!validateBeforeSubmit()) return
+
+    setSimulating(true)
+    try {
+      const order = await ordersApi.checkout({ delivery_address: trimmedAddress })
+      await paymentsApi.testComplete(order.id)
+      navigate("/shop", { state: { paymentStatus: "success" } })
+    } catch (err) {
+      toast.error(extractErrorMessage(err, "Simulated payment failed."))
+      setSimulating(false)
     }
   }
 
@@ -206,6 +228,22 @@ const CheckoutPage = () => {
             >
               <CreditCard size={16} />
               {submitting ? "Redirecting to eSewa…" : "Pay with eSewa"}
+            </button>
+
+            {/* DEV/TEST ONLY — no-ops (backend 404s) once DEBUG=False */}
+            <button
+              onClick={handleSimulateSuccess}
+              disabled={submitting || simulating || isEmpty || isLoading}
+              style={{
+                width: "100%", marginTop: "8px", padding: "9px",
+                backgroundColor: "transparent",
+                color: simulating ? gray[400] : gray[500],
+                border: `1px dashed ${gray[300]}`, borderRadius: "10px",
+                fontSize: "11.5px", fontWeight: 600,
+                cursor: simulating || submitting || isEmpty ? "not-allowed" : "pointer",
+              }}
+            >
+              {simulating ? "Simulating…" : "eSewa sandbox down? Simulate success (test only)"}
             </button>
 
             <p style={{ fontSize: "11px", color: gray[500], textAlign: "center", margin: "10px 0 0", lineHeight: 1.5 }}>

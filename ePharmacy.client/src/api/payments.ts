@@ -9,6 +9,10 @@ export const paymentsApi = {
   verify: (data: Record<string, string>) =>
     api.post<PaymentRecord>("/api/payment/verify/", data).then(r => r.data),
 
+  // DEV/TEST ONLY — 404s in production. Bypasses eSewa when its sandbox is down.
+  testComplete: (orderId: string) =>
+    api.post<PaymentRecord>("/api/payment/test-complete/", { order_id: orderId }).then(r => r.data),
+
   getByOrder: (orderId: string) =>
     api.get<PaymentRecord>(`/api/payment/${orderId}/`).then(r => r.data),
 }

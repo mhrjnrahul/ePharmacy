@@ -166,6 +166,65 @@ class PaymentVerifyView(APIView):
             )
 
 
+class PaymentTestCompleteView(APIView):
+    """
+    POST /api/payments/test-complete/     — DEV/TEST ONLY (requires DEBUG=True)
+
+    Bypasses eSewa entirely: marks the order's payment COMPLETED and
+    auto-confirms the order, exactly like a successful PaymentVerifyView call
+    would. Exists because eSewa's RC/sandbox environment is unreliable for
+    completing test transactions end-to-end — this unblocks testing the rest
+    of the order/payment flow while that's the case.
+
+    Body: { "order_id": "<uuid>" }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from django.conf import settings as dj_settings
+
+        if not dj_settings.DEBUG:
+            return Response(
+                {"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = PaymentInitiateSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        order = serializer.context["order"]
+
+        payment, _ = Payment.objects.get_or_create(
+            order=order,
+            defaults={
+                "gateway": Payment.Gateway.ESEWA,
+                "status": Payment.Status.PENDING,
+                "amount": order.total_amount,
+                "gateway_ref": str(order.id),
+            },
+        )
+
+        payment.status = Payment.Status.COMPLETED
+        payment.transaction_id = f"TEST-{payment.id}"
+        payment.gateway_response = {"test_mode": True}
+        payment.paid_at = timezone.now()
+        payment.save(
+            update_fields=[
+                "status",
+                "transaction_id",
+                "gateway_response",
+                "paid_at",
+                "updated_at",
+            ]
+        )
+
+        if order.status == Order.Status.PENDING:
+            order.confirm(confirmed_by=None)
+
+        return Response(PaymentSerializer(payment).data, status=status.HTTP_200_OK)
+
+
 class PaymentDetailView(APIView):
     """
     GET /api/payments/<order_id>/

@@ -1,9 +1,14 @@
 import { api } from "./axios"
 import type { Manufacturer, CreateManufacturerRequest, UpdateManufacturerRequest } from "@/types/manufacturer"
+import type { Paginated } from "@/types/pagination"
+import { fetchAllPages } from "./pagination"
 
 export const manufacturersApi = {
-  getAll: () =>
-    api.get<Manufacturer[]>("/api/catalog/manufacturers/").then(r => r.data),
+  getAll: (params?: { page?: number }) =>
+    api.get<Paginated<Manufacturer>>("/api/catalog/manufacturers/", { params }).then(r => r.data),
+
+  // Fetches every page — for populating dropdowns, not the manufacturers list page.
+  getAllUnpaginated: () => fetchAllPages(page => manufacturersApi.getAll({ page })),
 
   getById: (id: string) =>
     api.get<Manufacturer>(`/api/catalog/manufacturers/${id}/`).then(r => r.data),

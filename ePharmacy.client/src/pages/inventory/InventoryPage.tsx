@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Plus, Pencil, X, Loader2, Package, AlertTriangle,
   Clock, ArrowUpDown, Filter, Eye,
@@ -8,8 +8,11 @@ import {
   useBatches, useCreateBatch, useUpdateBatch,
   useStockAdjust, useBatchMovements, useInventorySummary,
 } from "@/hooks/useInventory"
-import { useMedicines } from "@/hooks/useMedicines"
+import { useAllMedicines } from "@/hooks/useMedicines"
+import { Pagination } from "@/components/ui/pagination"
 import type { BatchList, CreateBatchRequest, UpdateBatchRequest, StockAdjustRequest, MovementType } from "@/types/inventory"
+
+const PAGE_SIZE = 10
 
 // ── tokens ────────────────────────────────────────────────────────────────────
 const green = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857" }
@@ -400,7 +403,10 @@ interface MovementsDrawerProps {
 }
 
 const MovementsDrawer = ({ batch, medicineName, onClose }: MovementsDrawerProps) => {
-  const { data: movements = [], isLoading } = useBatchMovements(batch.id)
+  const [movementsPage, setMovementsPage] = useState(1)
+  const { data: movementsData, isLoading } = useBatchMovements(batch.id, { page: movementsPage })
+  const movements = movementsData?.results ?? []
+  const movementsCount = movementsData?.count ?? 0
 
   return (
     <>
@@ -463,6 +469,7 @@ const MovementsDrawer = ({ batch, medicineName, onClose }: MovementsDrawerProps)
               })}
             </div>
           )}
+          <Pagination page={movementsPage} pageSize={PAGE_SIZE} count={movementsCount} onPageChange={setMovementsPage} />
         </div>
       </div>
     </>
@@ -473,14 +480,22 @@ const MovementsDrawer = ({ batch, medicineName, onClose }: MovementsDrawerProps)
 const InventoryPage = () => {
   const [filterMedicine, setFilterMedicine] = useState("")
   const [filterActive,   setFilterActive  ] = useState<"all" | "active" | "inactive">("all")
+  const [page, setPage] = useState(1)
 
   const params = {
     ...(filterMedicine ? { medicine: filterMedicine } : {}),
     ...(filterActive === "active" ? { is_active: true } : filterActive === "inactive" ? { is_active: false } : {}),
+    page,
   }
 
-  const { data: batches = [], isLoading, isError } = useBatches(params)
-  const { data: medicines = [] } = useMedicines()
+  const { data, isLoading, isError } = useBatches(params)
+  const batches = data?.results ?? []
+  const totalCount = data?.count ?? 0
+  const { data: medicines = [] } = useAllMedicines()
+
+  useEffect(() => {
+    setPage(1)
+  }, [filterMedicine, filterActive])
 
   const [addOpen,     setAddOpen    ] = useState(false)
   const [editBatch,   setEditBatch  ] = useState<BatchList | null>(null)
@@ -525,7 +540,7 @@ const InventoryPage = () => {
         <div>
           <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>Inventory</h1>
           <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
-            {batches.length} {batches.length === 1 ? "batch" : "batches"}
+            {totalCount} {totalCount === 1 ? "batch" : "batches"}
           </p>
         </div>
         <button
@@ -689,6 +704,8 @@ const InventoryPage = () => {
           </table>
         </div>
       )}
+
+      <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
 
       {addOpen && (
         <AddBatchModal medicines={medicines} onClose={() => setAddOpen(false)} />

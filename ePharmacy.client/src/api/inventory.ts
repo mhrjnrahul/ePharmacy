@@ -4,11 +4,17 @@ import type {
   UpdateBatchRequest, StockMovement, StockAdjustRequest,
   InventorySummary, WriteOffResponse,
 } from "@/types/inventory"
+import type { Paginated } from "@/types/pagination"
+import { fetchAllPages } from "./pagination"
 
 export const inventoryApi = {
   // Batches
-  getAllBatches: (params?: { medicine?: string; is_active?: boolean }) =>
-    api.get<BatchList[]>("/api/inventory/batches/", { params }).then(r => r.data),
+  getAllBatches: (params?: { medicine?: string; is_active?: boolean; page?: number }) =>
+    api.get<Paginated<BatchList>>("/api/inventory/batches/", { params }).then(r => r.data),
+
+  // Fetches every page — for populating dropdowns (e.g. batch picker in stock adjustment).
+  getAllBatchesUnpaginated: (params?: { medicine?: string; is_active?: boolean }) =>
+    fetchAllPages(page => inventoryApi.getAllBatches({ ...params, page })),
 
   getBatchById: (id: string) =>
     api.get<BatchDetail>(`/api/inventory/batches/${id}/`).then(r => r.data),
@@ -20,11 +26,11 @@ export const inventoryApi = {
     api.put<BatchDetail>(`/api/inventory/batches/${id}/`, data).then(r => r.data),
 
   // Movements
-  getAllMovements: (params?: { batch?: string; movement_type?: string }) =>
-    api.get<StockMovement[]>("/api/inventory/movements/", { params }).then(r => r.data),
+  getAllMovements: (params?: { batch?: string; movement_type?: string; page?: number }) =>
+    api.get<Paginated<StockMovement>>("/api/inventory/movements/", { params }).then(r => r.data),
 
-  getBatchMovements: (batchId: string) =>
-    api.get<StockMovement[]>(`/api/inventory/batches/${batchId}/movements/`).then(r => r.data),
+  getBatchMovements: (batchId: string, params?: { page?: number }) =>
+    api.get<Paginated<StockMovement>>(`/api/inventory/batches/${batchId}/movements/`, { params }).then(r => r.data),
 
   // Adjust
   adjust: (data: StockAdjustRequest) =>

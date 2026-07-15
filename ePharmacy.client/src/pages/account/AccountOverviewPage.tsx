@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { ChevronRight, FileHeart, Package, Receipt, ShoppingBag } from "lucide-react"
-import { useOrders } from "@/hooks/useOrders"
-import { usePrescriptions } from "@/hooks/usePrescriptions"
+import { useAllOrders } from "@/hooks/useOrders"
+import { useAllPrescriptions } from "@/hooks/usePrescriptions"
 import { StatTile } from "@/components/ui/stat-tile"
 import { OrderStatusTag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -10,8 +10,8 @@ const formatRs = (value: number) =>
   `Rs. ${value.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
 
 const AccountOverviewPage = () => {
-  const { data: orders, isLoading: ordersLoading } = useOrders()
-  const { data: prescriptions, isLoading: rxLoading } = usePrescriptions()
+  const { data: orders, isLoading: ordersLoading } = useAllOrders()
+  const { data: prescriptions, isLoading: rxLoading } = useAllPrescriptions()
 
   const totalOrders = orders?.length ?? 0
   const pendingOrders = orders?.filter(o => o.status === "pending").length ?? 0

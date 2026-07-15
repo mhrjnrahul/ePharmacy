@@ -1,11 +1,14 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   X, Loader2, ArrowUpDown, TrendingUp, TrendingDown,
   RotateCcw, Wrench, Trash2, Filter, Plus,
 } from "lucide-react"
-import { useMovements, useStockAdjust, useBatches } from "@/hooks/useInventory"
-import { useMedicines } from "@/hooks/useMedicines"
+import { useMovements, useStockAdjust, useAllBatches } from "@/hooks/useInventory"
+import { useAllMedicines } from "@/hooks/useMedicines"
+import { Pagination } from "@/components/ui/pagination"
 import type { StockAdjustRequest, MovementType } from "@/types/inventory"
+
+const PAGE_SIZE = 10
 
 // ── tokens ────────────────────────────────────────────────────────────────────
 const green = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857" }
@@ -43,9 +46,9 @@ interface AdjustModalProps { onClose: () => void }
 
 const AdjustModal = ({ onClose }: AdjustModalProps) => {
   const adjust = useStockAdjust()
-  const { data: medicines = [] } = useMedicines()
+  const { data: medicines = [] } = useAllMedicines()
   const [selectedMedicine, setSelectedMedicine] = useState("")
-  const { data: batches = [] } = useBatches(
+  const { data: batches = [] } = useAllBatches(
     selectedMedicine ? { medicine: selectedMedicine } : undefined
   )
 
@@ -195,9 +198,16 @@ const AdjustModal = ({ onClose }: AdjustModalProps) => {
 const StockAdjustmentsPage = () => {
   const [filterType,    setFilterType   ] = useState<MovementType | "">("")
   const [adjustOpen,    setAdjustOpen   ] = useState(false)
+  const [page,          setPage         ] = useState(1)
 
-  const params = filterType ? { movement_type: filterType } : {}
-  const { data: movements = [], isLoading, isError } = useMovements(params)
+  const params = { ...(filterType ? { movement_type: filterType } : {}), page }
+  const { data, isLoading, isError } = useMovements(params)
+  const movements = data?.results ?? []
+  const totalCount = data?.count ?? 0
+
+  useEffect(() => {
+    setPage(1)
+  }, [filterType])
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
@@ -222,7 +232,7 @@ const StockAdjustmentsPage = () => {
         <div>
           <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>Stock Adjustments</h1>
           <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
-            Full stock movement ledger — {movements.length} {movements.length === 1 ? "entry" : "entries"}
+            Full stock movement ledger — {totalCount} {totalCount === 1 ? "entry" : "entries"}
           </p>
         </div>
         <button
@@ -352,6 +362,8 @@ const StockAdjustmentsPage = () => {
           </table>
         </div>
       )}
+
+      <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
 
       {adjustOpen && <AdjustModal onClose={() => setAdjustOpen(false)} />}
     </div>

@@ -159,6 +159,10 @@ class Order(TimeStampedModel):
                     reference=f'Order #{self.id} cancelled',
                 )
 
+        # Release any prescriptions this order had consumed so they can
+        # authorise a future order instead of being permanently used up.
+        self.consumed_prescription_items.update(consumed_by_order=None, consumed_at=None)
+
     def confirm(self, confirmed_by):
         """
         Confirms the order and deducts stock from inventory.

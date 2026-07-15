@@ -4,11 +4,12 @@ from .models import Prescription, PrescriptionItem
 
 class PrescriptionItemSerializer(serializers.ModelSerializer):
     medicine_name = serializers.CharField(source="medicine.name", read_only=True)
+    is_used = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = PrescriptionItem
-        fields = ["id", "medicine", "medicine_name", "approved_quantity"]
-        read_only_fields = ["id"]
+        fields = ["id", "medicine", "medicine_name", "approved_quantity", "is_used"]
+        read_only_fields = ["id", "is_used"]
 
 
 class PrescriptionListSerializer(serializers.ModelSerializer):

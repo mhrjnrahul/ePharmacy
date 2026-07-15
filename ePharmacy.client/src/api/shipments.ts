@@ -5,12 +5,13 @@ import type {
   ShipmentStatusUpdateRequest,
   ShipmentStatus,
 } from "@/types/shipment"
+import type { Paginated } from "@/types/pagination"
 
 // NOTE: the backend mounts this app at /api/shipping/
 export const shipmentsApi = {
   // Staff: all shipments. Customer: own only.
-  getAll: (params?: { status?: ShipmentStatus }) =>
-    api.get<Shipment[]>("/api/shipping/", { params }).then(r => r.data),
+  getAll: (params?: { status?: ShipmentStatus; page?: number }) =>
+    api.get<Paginated<Shipment>>("/api/shipping/", { params }).then(r => r.data),
 
   getById: (id: string) =>
     api.get<Shipment>(`/api/shipping/${id}/`).then(r => r.data),

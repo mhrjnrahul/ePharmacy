@@ -1,11 +1,18 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { ChevronRight, Package } from "lucide-react"
 import { useOrders } from "@/hooks/useOrders"
 import { OrderStatusTag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Pagination } from "@/components/ui/pagination"
+
+const PAGE_SIZE = 10
 
 const AccountOrdersPage = () => {
-  const { data: orders, isLoading } = useOrders()
+  const [page, setPage] = useState(1)
+  const { data, isLoading } = useOrders({ page })
+  const orders = data?.results
+  const totalCount = data?.count ?? 0
 
   if (isLoading) {
     return (
@@ -56,6 +63,7 @@ const AccountOrdersPage = () => {
           <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
         </Link>
       ))}
+      <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
     </div>
   )
 }

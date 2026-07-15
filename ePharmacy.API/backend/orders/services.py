@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils import timezone
 from inventory.models import Batch, Inventory
 from prescriptions.models import PrescriptionItem
 from .models import Cart, CartItem, Order, OrderItem
@@ -81,20 +82,21 @@ def checkout(user, delivery_address):
 
     with transaction.atomic():
         total_amount = 0
-        resolved_items = []  # list of (CartItem, Batch, unit_price)
+        resolved_items = []  # list of (CartItem, Batch, unit_price, PrescriptionItem | None)
 
         for cart_item in items:
             medicine = cart_item.medicine
 
             # Re-validate prescription at checkout
+            prescription_item = None
             if medicine.requires_prescription:
-                _validate_prescription(user, medicine, cart_item.quantity)
+                prescription_item = _validate_prescription(user, medicine, cart_item.quantity)
 
             # FIFO batch resolution — pick earliest expiry with enough stock
             batch = _resolve_batch(medicine, cart_item.quantity)
             unit_price = batch.selling_price
             total_amount += unit_price * cart_item.quantity
-            resolved_items.append((cart_item, batch, unit_price))
+            resolved_items.append((cart_item, batch, unit_price, prescription_item))
 
         order = Order.objects.create(
             user=user,
@@ -103,13 +105,20 @@ def checkout(user, delivery_address):
             delivery_address=delivery_address,
         )
 
-        for cart_item, batch, unit_price in resolved_items:
+        for cart_item, batch, unit_price, prescription_item in resolved_items:
             OrderItem.objects.create(
                 order=order,
                 batch=batch,
                 quantity=cart_item.quantity,
                 unit_price=unit_price,
             )
+
+            # Consume the prescription so it cannot cover a future order too.
+            # A cancelled order releases it again (see Order.cancel).
+            if prescription_item:
+                prescription_item.consumed_by_order = order
+                prescription_item.consumed_at = timezone.now()
+                prescription_item.save(update_fields=["consumed_by_order", "consumed_at", "updated_at"])
 
         # Clear cart after successful order
         cart.items.all().delete()
@@ -124,21 +133,38 @@ def _today():
 
 def _validate_prescription(user, medicine, quantity):
     """
-    Checks the customer has an APPROVED prescription covering this medicine
-    with sufficient approved_quantity.
-    Raises ValueError if not.
+    Checks the customer has an APPROVED, not-yet-used prescription covering
+    this medicine with sufficient approved_quantity.
+
+    A prescription authorises exactly one order — once used at checkout it's
+    marked consumed and can never authorise another purchase, even of the
+    same medicine. The customer must upload a fresh prescription each time.
+
+    Raises ValueError if not. Returns the matching PrescriptionItem.
     """
     item = (
         PrescriptionItem.objects.filter(
             prescription__customer=user,
             prescription__status="approved",
             medicine=medicine,
+            consumed_by_order__isnull=True,
         )
         .order_by("-created_at")
         .first()
     )
 
     if not item:
+        already_used = PrescriptionItem.objects.filter(
+            prescription__customer=user,
+            prescription__status="approved",
+            medicine=medicine,
+            consumed_by_order__isnull=False,
+        ).exists()
+        if already_used:
+            raise ValueError(
+                f'Your prescription for "{medicine.name}" has already been used for a '
+                f"previous order. Please upload a new prescription to order it again."
+            )
         raise ValueError(
             f'"{medicine.name}" requires a valid prescription. '
             f"Please upload your prescription and wait for approval before ordering."
@@ -149,6 +175,8 @@ def _validate_prescription(user, medicine, quantity):
             f'Your prescription for "{medicine.name}" only allows '
             f"{item.approved_quantity} unit(s). You requested {quantity}."
         )
+
+    return item
 
 
 def _resolve_batch(medicine, quantity):

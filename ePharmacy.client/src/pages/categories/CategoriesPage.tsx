@@ -6,7 +6,10 @@ import {
   useUpdateCategory,
   useDeleteCategory,
 } from "@/hooks/useCategories"
+import { Pagination } from "@/components/ui/pagination"
 import type { Category, CreateCategoryRequest } from "@/types/category"
+
+const PAGE_SIZE = 10
 
 // ── design tokens ─────────────────────────────────────────────────────────────
 const green = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857", 800: "#065f46" }
@@ -176,7 +179,10 @@ const DeleteModal = ({ category, onConfirm, onClose, isDeleting, error }: Delete
 
 // ── page ──────────────────────────────────────────────────────────────────────
 const CategoriesPage = () => {
-  const { data: categories = [], isLoading, isError } = useCategories()
+  const [page, setPage] = useState(1)
+  const { data, isLoading, isError } = useCategories({ page })
+  const categories = data?.results ?? []
+  const totalCount = data?.count ?? 0
   const deleteCategory = useDeleteCategory()
 
   const [modalOpen,    setModalOpen   ] = useState(false)
@@ -226,7 +232,7 @@ const CategoriesPage = () => {
         <div>
           <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>Categories</h1>
           <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
-            {categories.length} {categories.length === 1 ? "category" : "categories"}
+            {totalCount} {totalCount === 1 ? "category" : "categories"}
           </p>
         </div>
         <button
@@ -322,6 +328,8 @@ const CategoriesPage = () => {
           </table>
         </div>
       )}
+
+      <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
 
       {modalOpen && <CategoryModal editing={editing} onClose={closeModal} />}
 

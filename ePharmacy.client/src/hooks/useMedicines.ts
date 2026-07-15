@@ -10,6 +10,13 @@ export const useMedicines = (params?: MedicineListParams) =>
     queryFn: () => medicinesApi.getAll(params),
   })
 
+/** All medicines, unpaginated — for dropdowns/selects, not the medicines list page. */
+export const useAllMedicines = (params?: Omit<MedicineListParams, "page">) =>
+  useQuery({
+    queryKey: [...MEDICINES_KEY, "all", params],
+    queryFn: () => medicinesApi.getAllUnpaginated(params),
+  })
+
 export const usePopularMedicines = (limit = 8) =>
   useQuery({
     queryKey: [...MEDICINES_KEY, "popular", limit],

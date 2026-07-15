@@ -4,10 +4,17 @@ import type { PrescriptionStatus } from "@/types/prescription"
 
 export const PRESCRIPTIONS_KEY = ["prescriptions"] as const
 
-export const usePrescriptions = (params?: { status?: PrescriptionStatus }) =>
+export const usePrescriptions = (params?: { status?: PrescriptionStatus; page?: number }) =>
   useQuery({
     queryKey: [...PRESCRIPTIONS_KEY, params],
     queryFn: () => prescriptionsApi.getAll(params),
+  })
+
+/** All matching prescriptions, unpaginated — for stats/summaries across the full history. */
+export const useAllPrescriptions = (params?: { status?: PrescriptionStatus }) =>
+  useQuery({
+    queryKey: [...PRESCRIPTIONS_KEY, "all", params],
+    queryFn: () => prescriptionsApi.getAllUnpaginated(params),
   })
 
 export const usePrescriptionDetail = (id: string | null) =>
@@ -33,7 +40,11 @@ export const useApprovePrescription = () => {
       items?: { medicine: string; approved_quantity: number }[]
       notes?: string
     }) => prescriptionsApi.approve(id, { items, notes }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: PRESCRIPTIONS_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PRESCRIPTIONS_KEY })
+      // Dashboard/sidebar "pending prescriptions" badge is sourced from reports
+      qc.invalidateQueries({ queryKey: ["reports"] })
+    },
   })
 }
 
@@ -42,6 +53,9 @@ export const useRejectPrescription = () => {
   return useMutation({
     mutationFn: ({ id, reason, notes }: { id: string; reason: string; notes?: string }) =>
       prescriptionsApi.reject(id, { reason, notes }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: PRESCRIPTIONS_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PRESCRIPTIONS_KEY })
+      qc.invalidateQueries({ queryKey: ["reports"] })
+    },
   })
 }

@@ -14,6 +14,7 @@ export interface PrescriptionItem {
   medicine: string
   medicine_name: string
   approved_quantity: number
+  is_used: boolean
 }
 
 export interface PrescriptionDetail {

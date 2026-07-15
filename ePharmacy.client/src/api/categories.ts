@@ -1,9 +1,14 @@
 import { api } from "./axios"
 import type { Category, CreateCategoryRequest, UpdateCategoryRequest } from "@/types/category"
+import type { Paginated } from "@/types/pagination"
+import { fetchAllPages } from "./pagination"
 
 export const categoriesApi = {
-  getAll: () =>
-    api.get<Category[]>("/api/catalog/categories/").then(r => r.data),
+  getAll: (params?: { page?: number }) =>
+    api.get<Paginated<Category>>("/api/catalog/categories/", { params }).then(r => r.data),
+
+  // Fetches every page — for populating dropdowns, not the categories list page.
+  getAllUnpaginated: () => fetchAllPages(page => categoriesApi.getAll({ page })),
 
   getById: (id: string) =>
     api.get<Category>(`/api/catalog/categories/${id}/`).then(r => r.data),

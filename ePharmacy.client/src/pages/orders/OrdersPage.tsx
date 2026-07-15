@@ -1,10 +1,13 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   X, Loader2, ShoppingCart,  ChevronRight,
   Clock, CheckCircle, Package, Truck, Star, XCircle,
 } from "lucide-react"
 import { useOrders, useOrderDetail, useUpdateOrderStatus, useCancelOrder } from "@/hooks/useOrders"
+import { Pagination } from "@/components/ui/pagination"
 import type { OrderList, OrderStatus } from "@/types/order"
+
+const PAGE_SIZE = 10
 
 // ── tokens ────────────────────────────────────────────────────────────────────
 const green  = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857" }
@@ -313,9 +316,16 @@ const OrderDrawer = ({ orderId, onClose }: OrderDrawerProps) => {
 const OrdersPage = () => {
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "">("")
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
 
-  const params = filterStatus ? { status: filterStatus } : {}
-  const { data: orders = [], isLoading, isError } = useOrders(params)
+  const params = { ...(filterStatus ? { status: filterStatus } : {}), page }
+  const { data, isLoading, isError } = useOrders(params)
+  const orders = data?.results ?? []
+  const totalCount = data?.count ?? 0
+
+  useEffect(() => {
+    setPage(1)
+  }, [filterStatus])
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
@@ -340,7 +350,7 @@ const OrdersPage = () => {
         <div>
           <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>Orders</h1>
           <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
-            {orders.length} {orders.length === 1 ? "order" : "orders"}
+            {totalCount} {totalCount === 1 ? "order" : "orders"}
             {filterStatus && ` · filtered by ${statusMeta[filterStatus].label}`}
           </p>
         </div>
@@ -457,6 +467,8 @@ const OrdersPage = () => {
           </table>
         </div>
       )}
+
+      <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
 
       {selectedOrderId && (
         <OrderDrawer

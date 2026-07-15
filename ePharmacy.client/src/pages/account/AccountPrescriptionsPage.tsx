@@ -3,7 +3,10 @@ import { FileHeart, Loader2, Upload, ExternalLink } from "lucide-react"
 import { usePrescriptions, usePrescriptionDetail, useUploadPrescription } from "@/hooks/usePrescriptions"
 import { PrescriptionStatusTag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Pagination } from "@/components/ui/pagination"
 import { toast } from "@/store/toastStore"
+
+const PAGE_SIZE = 10
 
 const API_BASE = "http://127.0.0.1:8000"
 const MAX_SIZE_MB = 10
@@ -128,10 +131,15 @@ const PrescriptionRow = ({ id, status, created_at }: { id: string; status: any; 
                     {detail.items.map(item => (
                       <li key={item.id} className="tnum flex justify-between rounded-md bg-muted px-3 py-1.5 text-xs">
                         <span className="font-medium text-foreground">{item.medicine_name}</span>
-                        <span className="text-muted-foreground">up to {item.approved_quantity} units</span>
+                        <span className={item.is_used ? "text-muted-foreground line-through" : "text-muted-foreground"}>
+                          {item.is_used ? "already used" : `up to ${item.approved_quantity} units`}
+                        </span>
                       </li>
                     ))}
                   </ul>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    A prescription covers one order per medicine. Upload a new one to order again.
+                  </p>
                 </div>
               )}
 
@@ -150,7 +158,10 @@ const PrescriptionRow = ({ id, status, created_at }: { id: string; status: any; 
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 const AccountPrescriptionsPage = () => {
-  const { data: prescriptions, isLoading } = usePrescriptions()
+  const [page, setPage] = useState(1)
+  const { data, isLoading } = usePrescriptions({ page })
+  const prescriptions = data?.results
+  const totalCount = data?.count ?? 0
 
   return (
     <div className="space-y-4">
@@ -173,6 +184,7 @@ const AccountPrescriptionsPage = () => {
           {prescriptions.map(rx => (
             <PrescriptionRow key={rx.id} id={rx.id} status={rx.status} created_at={rx.created_at} />
           ))}
+          <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
         </div>
       )}
     </div>

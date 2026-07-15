@@ -5,10 +5,17 @@ import type { CreateBatchRequest, UpdateBatchRequest, StockAdjustRequest } from 
 export const BATCHES_KEY = ["batches"] as const
 export const MOVEMENTS_KEY = ["movements"] as const
 
-export const useBatches = (params?: { medicine?: string; is_active?: boolean }) =>
+export const useBatches = (params?: { medicine?: string; is_active?: boolean; page?: number }) =>
   useQuery({
     queryKey: [...BATCHES_KEY, params],
     queryFn: () => inventoryApi.getAllBatches(params),
+  })
+
+/** All matching batches, unpaginated — for dropdowns/selects, not the inventory list page. */
+export const useAllBatches = (params?: { medicine?: string; is_active?: boolean }) =>
+  useQuery({
+    queryKey: [...BATCHES_KEY, "all", params],
+    queryFn: () => inventoryApi.getAllBatchesUnpaginated(params),
   })
 
 export const useBatchDetail = (id: string | null) =>
@@ -22,7 +29,14 @@ export const useCreateBatch = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: CreateBatchRequest) => inventoryApi.createBatch(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: BATCHES_KEY }),
+    onSuccess: () => {
+      // Creating a batch also records an initial purchase movement and
+      // shifts the summary counts (active batches, low stock, etc.)
+      qc.invalidateQueries({ queryKey: BATCHES_KEY })
+      qc.invalidateQueries({ queryKey: MOVEMENTS_KEY })
+      qc.invalidateQueries({ queryKey: ["inventory-summary"] })
+      qc.invalidateQueries({ queryKey: ["reports"] })
+    },
   })
 }
 
@@ -31,20 +45,24 @@ export const useUpdateBatch = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateBatchRequest }) =>
       inventoryApi.updateBatch(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: BATCHES_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: BATCHES_KEY })
+      qc.invalidateQueries({ queryKey: ["inventory-summary"] })
+      qc.invalidateQueries({ queryKey: ["reports"] })
+    },
   })
 }
 
-export const useMovements = (params?: { batch?: string; movement_type?: string }) =>
+export const useMovements = (params?: { batch?: string; movement_type?: string; page?: number }) =>
   useQuery({
     queryKey: [...MOVEMENTS_KEY, params],
     queryFn: () => inventoryApi.getAllMovements(params),
   })
 
-export const useBatchMovements = (batchId: string | null) =>
+export const useBatchMovements = (batchId: string | null, params?: { page?: number }) =>
   useQuery({
-    queryKey: ["movements", "batch", batchId],
-    queryFn: () => inventoryApi.getBatchMovements(batchId!),
+    queryKey: ["movements", "batch", batchId, params],
+    queryFn: () => inventoryApi.getBatchMovements(batchId!, params),
     enabled: !!batchId,
   })
 
@@ -52,7 +70,12 @@ export const useStockAdjust = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: StockAdjustRequest) => inventoryApi.adjust(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: BATCHES_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: BATCHES_KEY })
+      qc.invalidateQueries({ queryKey: MOVEMENTS_KEY })
+      qc.invalidateQueries({ queryKey: ["inventory-summary"] })
+      qc.invalidateQueries({ queryKey: ["reports"] })
+    },
   })
 }
 
@@ -71,6 +94,7 @@ export const useWriteOffBatch = () => {
       qc.invalidateQueries({ queryKey: BATCHES_KEY })
       qc.invalidateQueries({ queryKey: MOVEMENTS_KEY })
       qc.invalidateQueries({ queryKey: ["inventory-summary"] })
+      qc.invalidateQueries({ queryKey: ["reports"] })
     },
   })
 }

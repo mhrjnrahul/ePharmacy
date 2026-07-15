@@ -6,7 +6,10 @@ import {
   useUpdateManufacturer,
   useDeleteManufacturer,
 } from "@/hooks/useManufacturers"
+import { Pagination } from "@/components/ui/pagination"
 import type { Manufacturer, CreateManufacturerRequest } from "@/types/manufacturer"
+
+const PAGE_SIZE = 10
 
 // ── design tokens ─────────────────────────────────────────────────────────────
 const green = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857" }
@@ -182,7 +185,10 @@ const DeleteModal = ({ manufacturer, onConfirm, onClose, isDeleting, error }: De
 
 // ── page ──────────────────────────────────────────────────────────────────────
 const ManufacturersPage = () => {
-  const { data: manufacturers = [], isLoading, isError } = useManufacturers()
+  const [page, setPage] = useState(1)
+  const { data, isLoading, isError } = useManufacturers({ page })
+  const manufacturers = data?.results ?? []
+  const totalCount = data?.count ?? 0
   const deleteManufacturer = useDeleteManufacturer()
 
   const [modalOpen,    setModalOpen   ] = useState(false)
@@ -232,7 +238,7 @@ const ManufacturersPage = () => {
         <div>
           <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>Manufacturers</h1>
           <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
-            {manufacturers.length} {manufacturers.length === 1 ? "manufacturer" : "manufacturers"}
+            {totalCount} {totalCount === 1 ? "manufacturer" : "manufacturers"}
           </p>
         </div>
         <button
@@ -333,6 +339,8 @@ const ManufacturersPage = () => {
           </table>
         </div>
       )}
+
+      <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
 
       {modalOpen && <ManufacturerModal editing={editing} onClose={closeModal} />}
 

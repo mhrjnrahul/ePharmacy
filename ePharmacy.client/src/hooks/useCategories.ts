@@ -4,10 +4,17 @@ import type { CreateCategoryRequest, UpdateCategoryRequest } from "@/types/categ
 
 export const CATEGORIES_KEY = ["categories"] as const
 
-export const useCategories = () =>
+export const useCategories = (params?: { page?: number }) =>
   useQuery({
-    queryKey: CATEGORIES_KEY,
-    queryFn: categoriesApi.getAll,
+    queryKey: [...CATEGORIES_KEY, params],
+    queryFn: () => categoriesApi.getAll(params),
+  })
+
+/** All categories, unpaginated — for dropdowns/selects, not the categories list page. */
+export const useAllCategories = () =>
+  useQuery({
+    queryKey: [...CATEGORIES_KEY, "all"],
+    queryFn: categoriesApi.getAllUnpaginated,
   })
 
 export const useCreateCategory = () => {

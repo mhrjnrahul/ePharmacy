@@ -66,6 +66,12 @@ class Shipment(TimeStampedModel):
             'dispatched_at', 'notes', 'updated_at',
         ])
 
+        # Sync order status to SHIPPED (mirrors mark_delivered's sync below)
+        order = self.order
+        if order.status == 'processing':
+            order.status = 'shipped'
+            order.save(update_fields=['status', 'updated_at'])
+
     def mark_delivered(self):
         from django.utils import timezone
         self.status = self.Status.DELIVERED

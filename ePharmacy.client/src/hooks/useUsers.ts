@@ -4,10 +4,18 @@ import type { AdminCreateRequest } from "@/types/auth"
 
 export const USERS_KEY = ["users"] as const
 
-export const useUsers = () =>
+export const useUsers = (params?: { page?: number }) =>
   useQuery({
-    queryKey: USERS_KEY,
-    queryFn: usersApi.getAll,
+    queryKey: [...USERS_KEY, params],
+    queryFn: () => usersApi.getAll(params),
+  })
+
+/** All users, unpaginated — for pages that do client-side search/filter/counts
+ *  across the whole user base (User Management, Customers), not a paged table. */
+export const useAllUsers = () =>
+  useQuery({
+    queryKey: [...USERS_KEY, "all"],
+    queryFn: usersApi.getAllUnpaginated,
   })
 
 export const useCreateStaff = () => {

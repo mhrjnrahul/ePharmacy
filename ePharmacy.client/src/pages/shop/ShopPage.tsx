@@ -1,10 +1,13 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Search, SlidersHorizontal, PackageSearch } from "lucide-react"
 import { useMedicines } from "@/hooks/useMedicines"
-import { useCategories } from "@/hooks/useCategories"
+import { useAllCategories } from "@/hooks/useCategories"
 import { ShopCard, ShopCardSkeleton } from "@/components/shop/ShopCard"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Pagination } from "@/components/ui/pagination"
 import type { DosageForm } from "@/types/medicine"
+
+const PAGE_SIZE = 10
 
 const DOSAGE_FORMS: { value: DosageForm; label: string }[] = [
   { value: "tablet",    label: "Tablet"    },
@@ -22,17 +25,25 @@ const ShopPage = () => {
   const [dosageForm, setDosageForm] = useState<DosageForm | "">("")
   const [inStockOnly, setInStockOnly] = useState(false)
   const [rxFilter, setRxFilter] = useState<"" | "true" | "false">("")
+  const [page, setPage] = useState(1)
 
-  const { data: categories } = useCategories()
-  const { data: medicines, isLoading, isError } = useMedicines({
+  const { data: categories } = useAllCategories()
+  const { data, isLoading, isError } = useMedicines({
     search: search || undefined,
     category: category || undefined,
     dosage_form: dosageForm || undefined,
     requires_prescription: rxFilter === "" ? undefined : rxFilter === "true",
     ordering: "name",
+    page,
   })
+  const medicines = data?.results ?? []
+  const totalCount = data?.count ?? 0
 
-  const visible = (medicines ?? []).filter(
+  useEffect(() => {
+    setPage(1)
+  }, [search, category, dosageForm, rxFilter])
+
+  const visible = medicines.filter(
     m => m.is_active && (!inStockOnly || m.in_stock),
   )
 
@@ -137,10 +148,11 @@ const ShopPage = () => {
             />
           ) : (
             <>
-              <p className="tnum mb-3 text-xs text-muted-foreground">{visible.length} medicines</p>
+              <p className="tnum mb-3 text-xs text-muted-foreground">{totalCount} medicines</p>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                 {visible.map(m => <ShopCard key={m.id} medicine={m} />)}
               </div>
+              <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
             </>
           )}
         </div>

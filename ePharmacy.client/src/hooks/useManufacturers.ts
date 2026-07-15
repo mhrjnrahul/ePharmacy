@@ -4,10 +4,17 @@ import type { CreateManufacturerRequest, UpdateManufacturerRequest } from "@/typ
 
 export const MANUFACTURERS_KEY = ["manufacturers"] as const
 
-export const useManufacturers = () =>
+export const useManufacturers = (params?: { page?: number }) =>
   useQuery({
-    queryKey: MANUFACTURERS_KEY,
-    queryFn: manufacturersApi.getAll,
+    queryKey: [...MANUFACTURERS_KEY, params],
+    queryFn: () => manufacturersApi.getAll(params),
+  })
+
+/** All manufacturers, unpaginated — for dropdowns/selects, not the manufacturers list page. */
+export const useAllManufacturers = () =>
+  useQuery({
+    queryKey: [...MANUFACTURERS_KEY, "all"],
+    queryFn: manufacturersApi.getAllUnpaginated,
   })
 
 export const useCreateManufacturer = () => {

@@ -46,6 +46,7 @@ export interface MedicineListParams {
   dosage_form?: DosageForm
   search?: string
   ordering?: string
+  page?: number
 }
 
 export interface RecommendationResponse {

@@ -7,10 +7,16 @@ import type {
   UpdateMedicineRequest,
   RecommendationResponse,
 } from "@/types/medicine"
+import type { Paginated } from "@/types/pagination"
+import { fetchAllPages } from "./pagination"
 
 export const medicinesApi = {
   getAll: (params?: MedicineListParams) =>
-    api.get<MedicineListItem[]>("/api/catalog/medicines/", { params }).then(r => r.data),
+    api.get<Paginated<MedicineListItem>>("/api/catalog/medicines/", { params }).then(r => r.data),
+
+  // Fetches every page — for populating dropdowns, not the medicines list page.
+  getAllUnpaginated: (params?: Omit<MedicineListParams, "page">) =>
+    fetchAllPages(page => medicinesApi.getAll({ ...params, page })),
 
   getById: (id: string) =>
     api.get<Medicine>(`/api/catalog/medicines/${id}/`).then(r => r.data),

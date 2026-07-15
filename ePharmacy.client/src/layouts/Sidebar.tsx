@@ -231,13 +231,14 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
           </div>
         </div>
 
-        {confirmingLogout && (
-          <LogoutConfirmModal
-            onConfirm={confirmLogout}
-            onClose={() => setConfirmingLogout(false)}
-          />
-        )}
       </aside>
+
+      {confirmingLogout && (
+        <LogoutConfirmModal
+          onConfirm={confirmLogout}
+          onClose={() => setConfirmingLogout(false)}
+        />
+      )}
     </>
   )
 }

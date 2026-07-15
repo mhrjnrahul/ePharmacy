@@ -107,13 +107,14 @@ export const AccountSidebar = ({ open, onClose }: AccountSidebarProps) => {
           </div>
         </div>
 
-        {confirmingLogout && (
-          <LogoutConfirmModal
-            onConfirm={confirmLogout}
-            onClose={() => setConfirmingLogout(false)}
-          />
-        )}
       </aside>
+
+      {confirmingLogout && (
+        <LogoutConfirmModal
+          onConfirm={confirmLogout}
+          onClose={() => setConfirmingLogout(false)}
+        />
+      )}
     </>
   )
 }

@@ -5,7 +5,7 @@ import { ORDERS_KEY } from "./useOrders"
 
 export const SHIPMENTS_KEY = ["shipments"] as const
 
-export const useShipments = (params?: { status?: ShipmentStatus }) =>
+export const useShipments = (params?: { status?: ShipmentStatus; page?: number }) =>
   useQuery({
     queryKey: [...SHIPMENTS_KEY, params],
     queryFn: () => shipmentsApi.getAll(params),

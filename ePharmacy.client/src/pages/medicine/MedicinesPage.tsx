@@ -1,9 +1,12 @@
 import { useState } from "react"
 import { Plus, Pencil, Trash2, X, Loader2, Pill } from "lucide-react"
 import { useMedicines, useCreateMedicine, useUpdateMedicine, useDeleteMedicine, useMedicineDetail } from "@/hooks/useMedicines"
-import { useCategories } from "@/hooks/useCategories"
-import { useManufacturers } from "@/hooks/useManufacturers"
+import { useAllCategories } from "@/hooks/useCategories"
+import { useAllManufacturers } from "@/hooks/useManufacturers"
+import { Pagination } from "@/components/ui/pagination"
 import type { MedicineListItem, Medicine, CreateMedicineRequest, DosageForm } from "@/types/medicine"
+
+const PAGE_SIZE = 10
 
 // ── design tokens ─────────────────────────────────────────────────────────────
 const green = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857" }
@@ -49,8 +52,8 @@ interface ModalProps {
 const MedicineModal = ({ editing, onClose }: ModalProps) => {
   const create = useCreateMedicine()
   const update = useUpdateMedicine()
-  const { data: categories = [] } = useCategories()
-  const { data: manufacturers = [] } = useManufacturers()
+  const { data: categories = [] } = useAllCategories()
+  const { data: manufacturers = [] } = useAllManufacturers()
   const isPending = create.isPending || update.isPending
 
   const [form, setForm] = useState<CreateMedicineRequest>({
@@ -242,12 +245,15 @@ const EditLoadingModal = () => (
 
 // ── page ──────────────────────────────────────────────────────────────────────
 const MedicinesPage = () => {
-  const { data: medicines = [], isLoading, isError } = useMedicines()
+  const [page, setPage] = useState(1)
+  const { data, isLoading, isError } = useMedicines({ page })
+  const medicines = data?.results ?? []
+  const totalCount = data?.count ?? 0
   const deleteMedicine = useDeleteMedicine()
 
   // prefetch for modal dropdowns
-  useCategories()
-  useManufacturers()
+  useAllCategories()
+  useAllManufacturers()
 
   const [modalOpen,    setModalOpen   ] = useState(false)
   const [editingId,    setEditingId   ] = useState<string | null>(null)
@@ -308,7 +314,7 @@ const MedicinesPage = () => {
         <div>
           <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>Medicines</h1>
           <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
-            {medicines.length} {medicines.length === 1 ? "medicine" : "medicines"}
+            {totalCount} {totalCount === 1 ? "medicine" : "medicines"}
           </p>
         </div>
         <button
@@ -426,6 +432,8 @@ const MedicinesPage = () => {
           </table>
         </div>
       )}
+
+      <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
 
       {/* Edit loading overlay — shown while fetching detail */}
       {showEditLoader && <EditLoadingModal />}

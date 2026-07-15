@@ -5,11 +5,17 @@ import type {
   PrescriptionItem,
   PrescriptionStatus,
 } from "@/types/prescription"
+import type { Paginated } from "@/types/pagination"
+import { fetchAllPages } from "./pagination"
 
 export const prescriptionsApi = {
   // Customer: own prescriptions. Staff: all, filterable by status.
-  getAll: (params?: { status?: PrescriptionStatus }) =>
-    api.get<PrescriptionList[]>("/api/prescriptions/", { params }).then(r => r.data),
+  getAll: (params?: { status?: PrescriptionStatus; page?: number }) =>
+    api.get<Paginated<PrescriptionList>>("/api/prescriptions/", { params }).then(r => r.data),
+
+  // Fetches every page — for the account overview stats (pending count across full history).
+  getAllUnpaginated: (params?: { status?: PrescriptionStatus }) =>
+    fetchAllPages(page => prescriptionsApi.getAll({ ...params, page })),
 
   getById: (id: string) =>
     api.get<PrescriptionDetail>(`/api/prescriptions/${id}/`).then(r => r.data),
@@ -31,6 +37,6 @@ export const prescriptionsApi = {
   reject: (id: string, data: { reason: string; notes?: string }) =>
     api.post<PrescriptionDetail>(`/api/prescriptions/${id}/reject/`, data).then(r => r.data),
 
-  getItems: (id: string) =>
-    api.get<PrescriptionItem[]>(`/api/prescriptions/${id}/items/`).then(r => r.data),
+  getItems: (id: string, params?: { page?: number }) =>
+    api.get<Paginated<PrescriptionItem>>(`/api/prescriptions/${id}/items/`, { params }).then(r => r.data),
 }

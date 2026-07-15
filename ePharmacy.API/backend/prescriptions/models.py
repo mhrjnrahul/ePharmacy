@@ -119,9 +119,25 @@ class PrescriptionItem(TimeStampedModel):
         help_text="Max quantity the customer is allowed to order for this medicine.",
     )
 
+    # A prescription authorises exactly one purchase. Once it has been used
+    # to place an order, it can no longer cover a later order for the same
+    # medicine — the customer must upload and get a fresh prescription approved.
+    consumed_by_order = models.ForeignKey(
+        "orders.Order",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="consumed_prescription_items",
+    )
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         db_table = "prescriptions_prescription_item"
         unique_together = [("prescription", "medicine")]
 
     def __str__(self):
         return f"{self.medicine.name} x{self.approved_quantity} — Rx #{self.prescription.id}"
+
+    @property
+    def is_used(self):
+        return self.consumed_by_order_id is not None

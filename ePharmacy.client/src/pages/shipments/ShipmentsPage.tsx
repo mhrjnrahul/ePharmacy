@@ -1,13 +1,16 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Truck, Loader2, X, Plus } from "lucide-react"
 import { useShipments, useCreateShipment, useUpdateShipmentStatus } from "@/hooks/useShipments"
-import { useOrders } from "@/hooks/useOrders"
+import { useAllOrders } from "@/hooks/useOrders"
 import { PageHeader } from "@/components/ui/page-header"
 import { ShipmentStatusTag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Pagination } from "@/components/ui/pagination"
 import { toast } from "@/store/toastStore"
 import { cn } from "@/lib/utils"
 import type { Shipment, ShipmentStatus } from "@/types/shipment"
+
+const PAGE_SIZE = 10
 
 // Valid transitions mirror the backend state machine
 const NEXT_STATUS: Partial<Record<ShipmentStatus, ShipmentStatus[]>> = {
@@ -28,7 +31,7 @@ const STATUS_FILTERS: { value: ShipmentStatus | ""; label: string }[] = [
 // ── Create shipment dialog ───────────────────────────────────────────────────
 const CreateShipmentDialog = ({ onClose }: { onClose: () => void }) => {
   // Only PROCESSING orders can be shipped — the backend enforces this too
-  const { data: processingOrders } = useOrders({ status: "processing" })
+  const { data: processingOrders } = useAllOrders({ status: "processing" })
   const create = useCreateShipment()
 
   const [order, setOrder] = useState("")
@@ -164,8 +167,15 @@ const AdvanceButtons = ({ shipment }: { shipment: Shipment }) => {
 // ── Page ─────────────────────────────────────────────────────────────────────
 const ShipmentsPage = () => {
   const [statusFilter, setStatusFilter] = useState<ShipmentStatus | "">("")
-  const { data: shipments, isLoading } = useShipments(statusFilter ? { status: statusFilter } : undefined)
+  const [page, setPage] = useState(1)
+  const { data, isLoading } = useShipments({ ...(statusFilter ? { status: statusFilter } : {}), page })
+  const shipments = data?.results
+  const totalCount = data?.count ?? 0
   const [createOpen, setCreateOpen] = useState(false)
+
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter])
 
   return (
     <div>
@@ -242,6 +252,8 @@ const ShipmentsPage = () => {
           </table>
         </div>
       )}
+
+      <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
 
       {createOpen && <CreateShipmentDialog onClose={() => setCreateOpen(false)} />}
     </div>

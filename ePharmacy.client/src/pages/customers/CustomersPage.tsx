@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Users, Search, X } from "lucide-react";
-import { useUsers } from "../../hooks/useUsers";
+import { useAllUsers } from "../../hooks/useUsers";
 
 const green  = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857", 800: "#065f46" };
 const gray   = { 50: "#f9fafb", 100: "#f3f4f6", 200: "#e5e7eb", 400: "#9ca3af", 500: "#6b7280", 700: "#374151", 900: "#111827" };
@@ -15,7 +15,7 @@ function formatDate(dateStr: string) {
 }
 
 export default function CustomersPage() {
-  const { data: allUsers = [], isLoading, isError } = useUsers();
+  const { data: allUsers = [], isLoading, isError } = useAllUsers();
 
   const [search, setSearch]     = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");

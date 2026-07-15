@@ -105,12 +105,7 @@ class ShipmentStatusUpdateView(APIView):
             shipment.dispatch(
                 tracking_number=tracking_number,
                 notes=notes,
-            )
-            # Sync order to SHIPPED
-            order = shipment.order
-            if order.status == "processing":
-                order.status = "shipped"
-                order.save(update_fields=["status", "updated_at"])
+            )  # also syncs order to SHIPPED
 
         elif new_status == Shipment.Status.DELIVERED:
             shipment.mark_delivered()  # also syncs order to DELIVERED

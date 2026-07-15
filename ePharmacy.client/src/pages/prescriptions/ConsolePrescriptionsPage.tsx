@@ -1,16 +1,19 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { FileHeart, Loader2, Plus, Trash2, X, ExternalLink } from "lucide-react"
 import {
   usePrescriptions, usePrescriptionDetail,
   useApprovePrescription, useRejectPrescription,
 } from "@/hooks/usePrescriptions"
-import { useMedicines } from "@/hooks/useMedicines"
+import { useAllMedicines } from "@/hooks/useMedicines"
 import { PageHeader } from "@/components/ui/page-header"
 import { PrescriptionStatusTag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Pagination } from "@/components/ui/pagination"
 import { toast } from "@/store/toastStore"
 import { cn } from "@/lib/utils"
 import type { PrescriptionStatus } from "@/types/prescription"
+
+const PAGE_SIZE = 10
 
 const API_BASE = "http://127.0.0.1:8000"
 
@@ -33,7 +36,7 @@ interface ApprovalItem {
 // ── Review pane ──────────────────────────────────────────────────────────────
 const ReviewPane = ({ id, onClose }: { id: string; onClose: () => void }) => {
   const { data: rx, isLoading } = usePrescriptionDetail(id)
-  const { data: medicines } = useMedicines()
+  const { data: medicines } = useAllMedicines()
   const approve = useApprovePrescription()
   const reject = useRejectPrescription()
 
@@ -143,7 +146,9 @@ const ReviewPane = ({ id, onClose }: { id: string; onClose: () => void }) => {
                         {rx.items.map(item => (
                           <li key={item.id} className="tnum flex justify-between rounded-md bg-muted px-3 py-1.5">
                             <span>{item.medicine_name}</span>
-                            <span className="text-muted-foreground">max {item.approved_quantity}</span>
+                            <span className="text-muted-foreground">
+                              {item.is_used ? "used" : `max ${item.approved_quantity}`}
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -278,10 +283,15 @@ const ReviewPane = ({ id, onClose }: { id: string; onClose: () => void }) => {
 // ── Page ─────────────────────────────────────────────────────────────────────
 const ConsolePrescriptionsPage = () => {
   const [statusFilter, setStatusFilter] = useState<PrescriptionStatus | "">("pending")
-  const { data: prescriptions, isLoading } = usePrescriptions(
-    statusFilter ? { status: statusFilter } : undefined,
-  )
+  const [page, setPage] = useState(1)
+  const { data, isLoading } = usePrescriptions({ ...(statusFilter ? { status: statusFilter } : {}), page })
+  const prescriptions = data?.results
+  const totalCount = data?.count ?? 0
   const [reviewId, setReviewId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter])
 
   return (
     <div>
@@ -355,6 +365,8 @@ const ConsolePrescriptionsPage = () => {
           </table>
         </div>
       )}
+
+      <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
 
       {reviewId && <ReviewPane id={reviewId} onClose={() => setReviewId(null)} />}
     </div>

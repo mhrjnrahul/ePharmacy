@@ -3,7 +3,7 @@ import {
   Plus, X, Loader2, Users, Shield, UserCheck,
   UserX, RotateCcw, Eye, EyeOff,
 } from "lucide-react"
-import { useUsers, useCreateStaff, useDeleteUser, useRestoreUser } from "@/hooks/useUsers"
+import { useAllUsers, useCreateStaff, useDeleteUser, useRestoreUser } from "@/hooks/useUsers"
 import type { UserRead, AdminCreateRequest } from "@/types/auth"
 
 // ── tokens ────────────────────────────────────────────────────────────────────
@@ -192,7 +192,7 @@ const ConfirmModal = ({ user, action, onConfirm, onClose, isPending, error }: Co
 
 // ── page ──────────────────────────────────────────────────────────────────────
 const UserManagementPage = () => {
-  const { data: users = [], isLoading, isError } = useUsers()
+  const { data: users = [], isLoading, isError } = useAllUsers()
   const deleteUser  = useDeleteUser()
   const restoreUser = useRestoreUser()
 

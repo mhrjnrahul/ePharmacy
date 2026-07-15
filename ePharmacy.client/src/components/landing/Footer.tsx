@@ -1,27 +1,53 @@
 import { Link } from "react-router-dom"
 import { Pill, Phone, Mail, MapPin } from "lucide-react"
+import { useAllCategories } from "@/hooks/useCategories"
 import { green, gray } from "./tokens"
 
-const QUICK_LINKS    = ["Home", "About Us", "Contact", "Blog"]
-const CATEGORY_LINKS = ["Antibiotics", "Analgesics", "Antacids", "Antihistamines", "Antidiabetics"]
-const LEGAL_LINKS    = ["Privacy Policy", "Terms of Service", "Return Policy", "FAQ"]
+const CATEGORY_COLUMN_LIMIT = 5
 
-const FooterCol = ({ title, links }: { title: string; links: string[] }) => (
+interface FooterLink {
+  label: string
+  to?: string // omitted = no page exists yet, rendered as inert text instead of a dead link
+}
+
+const QUICK_LINKS: FooterLink[] = [
+  { label: "Home", to: "/" },
+  { label: "Shop", to: "/shop" },
+  { label: "About Us" },
+  { label: "Contact" },
+]
+const LEGAL_LINKS: FooterLink[] = [
+  { label: "Privacy Policy" },
+  { label: "Terms of Service" },
+  { label: "Return Policy" },
+  { label: "FAQ" },
+]
+
+const FooterCol = ({ title, links }: { title: string; links: FooterLink[] }) => (
   <div>
     <h4 style={{ fontSize: "13px", fontWeight: 600, color: "#fff", margin: "0 0 16px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
       {title}
     </h4>
-    {links.map(l => (
-      <a
-        key={l}
-        href="#"
-        style={{ display: "block", fontSize: "13px", color: gray[500], textDecoration: "none", marginBottom: "10px", transition: "color 0.15s" }}
-        onMouseEnter={e => (e.currentTarget.style.color = green[500])}
-        onMouseLeave={e => (e.currentTarget.style.color = gray[500])}
-      >
-        {l}
-      </a>
-    ))}
+    {links.map(l =>
+      l.to ? (
+        <Link
+          key={l.label}
+          to={l.to}
+          style={{ display: "block", fontSize: "13px", color: gray[500], textDecoration: "none", marginBottom: "10px", transition: "color 0.15s" }}
+          onMouseEnter={e => (e.currentTarget.style.color = green[500])}
+          onMouseLeave={e => (e.currentTarget.style.color = gray[500])}
+        >
+          {l.label}
+        </Link>
+      ) : (
+        <span
+          key={l.label}
+          style={{ display: "block", fontSize: "13px", color: gray[700], marginBottom: "10px" }}
+        >
+          {l.label}
+        </span>
+      ),
+    )}
   </div>
 )
 
@@ -39,7 +65,14 @@ const FOOTER_STYLES = `
   }
 `
 
-export const Footer = () => (
+export const Footer = () => {
+  const { data: categories } = useAllCategories()
+  const categoryLinks: FooterLink[] = (categories ?? [])
+    .filter(c => c.is_active)
+    .slice(0, CATEGORY_COLUMN_LIMIT)
+    .map(c => ({ label: c.name, to: `/shop?category=${c.id}` }))
+
+  return (
   <footer className="footer-shell" style={{ backgroundColor: gray[900], color: "#fff" }}>
     <style>{FOOTER_STYLES}</style>
     <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
@@ -70,16 +103,16 @@ export const Footer = () => (
           </div>
         </div>
 
-        <FooterCol title="Quick Links" links={QUICK_LINKS}    />
-        <FooterCol title="Categories"  links={CATEGORY_LINKS} />
-        <FooterCol title="Legal"       links={LEGAL_LINKS}    />
+        <FooterCol title="Quick Links" links={QUICK_LINKS}   />
+        <FooterCol title="Categories"  links={categoryLinks} />
+        <FooterCol title="Legal"       links={LEGAL_LINKS}   />
 
       </div>
 
       {/* Bottom bar */}
       <div className="footer-bottom" style={{ borderTop: "1px solid #1f2937", paddingTop: "24px" }}>
         <p style={{ fontSize: "12px", color: gray[500], margin: 0 }}>
-          © 2025 ePharmacy Nepal. All rights reserved.
+          © {new Date().getFullYear()} ePharmacy Nepal. All rights reserved.
         </p>
         <p style={{ fontSize: "12px", color: gray[500], margin: 0 }}>
           Licensed Pharmacy · Reg. No. XXXXXXX
@@ -88,4 +121,5 @@ export const Footer = () => (
 
     </div>
   </footer>
-)
+  )
+}

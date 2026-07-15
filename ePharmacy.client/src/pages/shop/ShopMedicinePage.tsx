@@ -1,14 +1,16 @@
 import { useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { ArrowLeft, Check, Loader2, Minus, Pill, Plus, ShoppingCart, Upload } from "lucide-react"
-import { useMedicineDetail, useMedicineRecommendations } from "@/hooks/useMedicines"
+import { useMedicineDetail, useMedicineRecommendations, useMedicineSubstitutes } from "@/hooks/useMedicines"
 import { useAddToCart, useCart } from "@/hooks/useCart"
 import { useUploadPrescription } from "@/hooks/usePrescriptions"
 import { useAuthStore } from "@/store/authStore"
 import { openCart } from "@/components/landing/CartDrawer"
-import { ShopCard, ShopCardSkeleton, mediaUrl, formatPrice } from "@/components/shop/ShopCard"
+import { ShopCard, ShopCardSkeleton, formatPrice } from "@/components/shop/ShopCard"
+import { mediaUrl } from "@/lib/apiUrl"
 import { RxTag, StockTag, Tag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
+import { PageMeta } from "@/components/PageMeta"
 import { toast } from "@/store/toastStore"
 
 const ACCEPTED_RX_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
@@ -74,6 +76,7 @@ const ShopMedicinePage = () => {
   const { id } = useParams<{ id: string }>()
   const { data: medicine, isLoading, isError } = useMedicineDetail(id ?? null)
   const { data: recommendations } = useMedicineRecommendations(id ?? null)
+  const { data: substitutes } = useMedicineSubstitutes(id ?? null, !!medicine && !medicine.in_stock)
 
   const { user, isAuthenticated } = useAuthStore()
   const isCustomer = isAuthenticated && user?.role === "CUSTOMER"
@@ -129,6 +132,7 @@ const ShopMedicinePage = () => {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8">
+      <PageMeta title={medicine.name} description={medicine.description || `${medicine.name} — buy online with fast delivery.`} />
       <Link
         to="/shop"
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -236,6 +240,23 @@ const ShopMedicinePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Available substitutes — shown when this medicine is out of stock */}
+      {!medicine.in_stock && substitutes && substitutes.results.length > 0 && (
+        <div className="mt-10">
+          <h2 className="mb-1 text-lg font-bold tracking-tight text-foreground">
+            Available substitutes
+          </h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            These share the same active ingredient and are in stock now.
+          </p>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {substitutes.results.map(m => (
+              <ShopCard key={m.id} medicine={m} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Frequently bought together */}
       {recommendations && recommendations.results.length > 0 && (

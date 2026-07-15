@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
 import { useAuthStore } from "@/store/authStore"
+import { useLogout } from "@/hooks/useLogout"
 import { useDashboardStats } from "@/hooks/useReports"
 import {
   LayoutDashboard, Pill, Tags, Factory, Users, Package,
@@ -81,7 +82,8 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ open, onClose }: SidebarProps) => {
-  const { user, logout } = useAuthStore()
+  const user = useAuthStore(s => s.user)
+  const logout = useLogout()
   const navigate = useNavigate()
   const { data: stats } = useDashboardStats()
   const [confirmingLogout, setConfirmingLogout] = useState(false)

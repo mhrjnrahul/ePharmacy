@@ -1,3 +1,5 @@
+import uuid as uuid_lib
+
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
@@ -50,8 +52,12 @@ class PaymentInitiateView(APIView):
         serializer.is_valid(raise_exception=True)
         order = serializer.context["order"]
 
-        # Reuse existing PENDING payment if one exists (idempotent)
-        payment, _ = Payment.objects.get_or_create(
+        # Reuse the existing payment row for this order if one exists — Payment
+        # stays one-per-Order. But this may be a retry (customer cancelled or
+        # a prior attempt failed), so always issue a fresh transaction_uuid
+        # and reset to PENDING: eSewa rejects a reused transaction_uuid, even
+        # for the same order.
+        payment, created = Payment.objects.get_or_create(
             order=order,
             defaults={
                 "gateway": Payment.Gateway.ESEWA,
@@ -60,6 +66,10 @@ class PaymentInitiateView(APIView):
                 "gateway_ref": str(order.id),
             },
         )
+        if not created:
+            payment.transaction_uuid = uuid_lib.uuid4()
+            payment.status = Payment.Status.PENDING
+            payment.save(update_fields=["transaction_uuid", "status", "updated_at"])
 
         payload = esewa.build_payment_payload(order, payment)
 
@@ -82,7 +92,7 @@ class PaymentVerifyView(APIView):
 
     Body:
     {
-        "transaction_uuid": "<payment.id>",
+        "transaction_uuid": "<payment.transaction_uuid>",
         "total_amount": "500.00",
         "product_code": "EPAYTEST"
     }
@@ -105,10 +115,11 @@ class PaymentVerifyView(APIView):
         total_amount = serializer.validated_data["total_amount"]
         product_code = serializer.validated_data.get("product_code")
 
-        # transaction_uuid is the payment.id we sent to eSewa
+        # transaction_uuid identifies the payment ATTEMPT (regenerated on
+        # each retry in PaymentInitiateView) — not the same as payment.id.
         try:
             payment = Payment.objects.select_related("order").get(
-                id=transaction_uuid,
+                transaction_uuid=transaction_uuid,
                 order__user=request.user,
             )
         except Payment.DoesNotExist:
@@ -148,7 +159,26 @@ class PaymentVerifyView(APIView):
             # Auto-confirm the order and deduct stock
             order = payment.order
             if order.status == Order.Status.PENDING:
-                order.confirm(confirmed_by=None)  # system-confirmed via payment
+                try:
+                    order.confirm(confirmed_by=None)  # system-confirmed via payment
+                except ValueError:
+                    # eSewa already captured the money — Payment.COMPLETED must
+                    # stay accurate to that. But stock confirm() failed (e.g. a
+                    # competing order claimed the batch first), so the order
+                    # itself can't be fulfilled as-is. Surface this distinctly
+                    # instead of a raw 500 after a real charge — this needs a
+                    # human to reconcile (refund or re-batch the order).
+                    return Response(
+                        {
+                            "detail": (
+                                "Your payment was received, but we couldn't reserve "
+                                "stock for your order. Contact support with your "
+                                f"transaction ID ({payment.transaction_id}) for help."
+                            ),
+                            "payment": PaymentSerializer(payment).data,
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
 
             return Response(
                 PaymentSerializer(payment).data,

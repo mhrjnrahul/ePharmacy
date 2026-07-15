@@ -64,6 +64,7 @@ const MedicineModal = ({ editing, onClose }: ModalProps) => {
     requires_prescription: editing?.requires_prescription ?? false,
     dosage_form:           editing?.dosage_form           ?? "tablet",
     strength:              editing?.strength              ?? "",
+    composition:           editing?.composition           ?? "",
     is_active:             editing?.is_active             ?? true,
   })
   const [error, setError] = useState("")
@@ -112,6 +113,12 @@ const MedicineModal = ({ editing, onClose }: ModalProps) => {
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Strength *</label>
             <input style={inputStyle} value={form.strength} onChange={e => set("strength", e.target.value)} placeholder="e.g. 500mg" />
+          </div>
+
+          {/* Composition */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Composition</label>
+            <input style={inputStyle} value={form.composition} onChange={e => set("composition", e.target.value)} placeholder="e.g. Paracetamol (comma-separated for multiple ingredients)" />
           </div>
 
           {/* Dosage form + Category */}

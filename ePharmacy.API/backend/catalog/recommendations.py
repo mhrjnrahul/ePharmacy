@@ -3,9 +3,9 @@ catalog/recommendations.py
 
 Recommendation engine — built from scratch, no third-party ML libraries.
 
-TWO recommendation strategies work together:
+THREE recommendation strategies work together:
 
-1. CONTENT-BASED (MedicineRelation):
+1. CURATED / CO-PURCHASE RELATIONS (MedicineRelation):
    Uses manually curated + algorithm-updated MedicineRelation records.
    Covers SIDE_EFFECT_COMPANION and FREQUENTLY_BOUGHT_TOGETHER relations.
 
@@ -14,12 +14,32 @@ TWO recommendation strategies work together:
    "Customers who bought medicine A also bought medicine B."
    Uses cosine similarity to score how related two medicines are.
 
-Both strategies produce a scored list of medicine UUIDs.
-The final result merges both, deduplicates, and ranks by combined score.
+3. CONTENT-BASED (Jaccard similarity on composition):
+   Parses each medicine's `composition` field into a set of active
+   ingredients and scores pairs by Jaccard similarity — independent
+   of purchase history, so it works even for medicines nobody has
+   bought yet ("cold start"). Also powers substitute lookup for
+   out-of-stock medicines (see substitute_recommendations()).
+
+All strategies produce a scored list of medicine UUIDs.
+The final result merges them, deduplicates, and ranks by combined score.
 """
 
 import math
 from collections import defaultdict
+
+# Shared hybrid-formula weights — how much each signal contributes to the
+# combined recommendation score. Composition (0.7) sits between curated
+# clinical relations (1.0, pharmacist judgement) and frequently-bought-
+# together (0.8, real purchase pattern but noisier), and above raw
+# co-purchase CF (0.6), since a shared active ingredient is a structural,
+# deterministic signal rather than a popularity-biased one.
+RELATION_TYPE_WEIGHTS = {
+    "side_effect_companion": 1.0,
+    "frequently_bought_together": 0.8,
+}
+COMPOSITION_WEIGHT = 0.7
+COLLABORATIVE_WEIGHT = 0.6
 
 
 def dot_product(vec_a: dict, vec_b: dict) -> float:
@@ -167,38 +187,89 @@ def relation_based_recommendations(medicine_id: str, top_n: int = 10):
     ]
 
 
+# Strategy 3: Content-based (composition / active ingredients)
+
+
+def parse_composition(composition: str) -> set:
+    """Splits a comma-separated composition string into a normalised ingredient set."""
+    if not composition:
+        return set()
+    return {part.strip().lower() for part in composition.split(",") if part.strip()}
+
+
+def jaccard_similarity(set_a: set, set_b: set) -> float:
+    """
+    Jaccard similarity between two sets: |A ∩ B| / |A ∪ B|.
+    Returns 0.0 to 1.0 — 1.0 means identical ingredient sets.
+    """
+    if not set_a or not set_b:
+        return 0.0
+    union = len(set_a | set_b)
+    return len(set_a & set_b) / union if union else 0.0
+
+
+def composition_recommendations(medicine_id: str, top_n: int = 10):
+    """
+    Finds medicines with overlapping active ingredients using Jaccard
+    similarity — a content-based signal that works independently of
+    purchase history (helps with cold-start medicines).
+
+    Returns list of (medicine_id, score) sorted by score descending.
+    """
+    from .models import Medicine
+
+    target = (
+        Medicine.objects.filter(pk=medicine_id)
+        .values_list("composition", flat=True)
+        .first()
+    )
+    target_set = parse_composition(target or "")
+    if not target_set:
+        return []
+
+    scores = []
+    for m in Medicine.objects.filter(is_active=True).exclude(pk=medicine_id).values(
+        "id", "composition"
+    ):
+        sim = jaccard_similarity(target_set, parse_composition(m["composition"]))
+        if sim > 0:
+            scores.append((str(m["id"]), sim))
+
+    scores.sort(key=lambda x: x[1], reverse=True)
+    return scores[:top_n]
+
+
 # Combined recommender
 def get_recommendations(medicine_id: str, top_n: int = 8):
     """
-    Main entry point. Combines both strategies with weighted merging.
+    Main entry point. Combines all three strategies with weighted merging.
 
-    Score weights:
+    Score weights (see RELATION_TYPE_WEIGHTS / COMPOSITION_WEIGHT / COLLABORATIVE_WEIGHT):
         SIDE_EFFECT_COMPANION relation:       weight * 1.0  (clinical — highest priority)
         FREQUENTLY_BOUGHT_TOGETHER relation:  weight * 0.8
+        Composition (Jaccard) similarity:     sim * 0.7
         Collaborative filtering score:        cosine * 0.6
 
-    Medicines appearing in both strategies get their scores summed,
+    Medicines appearing in multiple strategies get their scores summed,
     so strong signals from multiple sources naturally rank highest.
     """
     medicine_id = str(medicine_id)
     combined_scores = defaultdict(float)
 
-    relation_type_weights = {
-        "side_effect_companion": 1.0,
-        "frequently_bought_together": 0.8,
-    }
-
     for med_id, weight, relation_type in relation_based_recommendations(
         medicine_id, top_n=top_n * 2
     ):
-        multiplier = relation_type_weights.get(relation_type, 0.5)
+        multiplier = RELATION_TYPE_WEIGHTS.get(relation_type, 0.5)
         combined_scores[med_id] += weight * multiplier
+
+    for med_id, sim in composition_recommendations(medicine_id, top_n=top_n * 2):
+        combined_scores[med_id] += sim * COMPOSITION_WEIGHT
 
     medicine_vectors = build_co_purchase_matrix()
     for med_id, score in collaborative_recommendations(
         medicine_id, medicine_vectors, top_n=top_n * 2
     ):
-        combined_scores[med_id] += score * 0.6
+        combined_scores[med_id] += score * COLLABORATIVE_WEIGHT
 
     ranked = sorted(
         [(mid, score) for mid, score in combined_scores.items() if mid != medicine_id],
@@ -220,27 +291,72 @@ def get_cart_recommendations(medicine_ids: list, top_n: int = 6):
     combined_scores = defaultdict(float)
     medicine_vectors = build_co_purchase_matrix()
 
-    relation_type_weights = {
-        "side_effect_companion": 1.0,
-        "frequently_bought_together": 0.8,
-    }
-
     for medicine_id in cart_set:
         for med_id, weight, relation_type in relation_based_recommendations(
             medicine_id, top_n=10
         ):
             if med_id not in cart_set:
-                multiplier = relation_type_weights.get(relation_type, 0.5)
+                multiplier = RELATION_TYPE_WEIGHTS.get(relation_type, 0.5)
                 combined_scores[med_id] += weight * multiplier
+
+        for med_id, sim in composition_recommendations(medicine_id, top_n=10):
+            if med_id not in cart_set:
+                combined_scores[med_id] += sim * COMPOSITION_WEIGHT
 
         for med_id, score in collaborative_recommendations(
             medicine_id, medicine_vectors, top_n=10
         ):
             if med_id not in cart_set:
-                combined_scores[med_id] += score * 0.6
+                combined_scores[med_id] += score * COLLABORATIVE_WEIGHT
 
     ranked = sorted(combined_scores.items(), key=lambda x: x[1], reverse=True)
     return [mid for mid, _ in ranked[:top_n]]
+
+
+# Substitute lookup (out-of-stock → in-stock alternatives)
+def substitute_recommendations(medicine_id: str, top_n: int = 6):
+    """
+    Finds substitute medicines for a given (often out-of-stock) medicine.
+
+    Score = composition Jaccard similarity (primary signal) + a small
+    category/dosage-form match bonus (fallback signal so the feature still
+    surfaces something useful for medicines that don't have composition
+    data filled in yet — a simple cold-start mitigation).
+
+    Stock filtering is NOT done here — the caller (MedicineSubstituteView)
+    filters to in-stock medicines after ranking, since stock is computed
+    from batch data, not stored on Medicine.
+
+    Returns list of medicine_id strings, ranked highest-score first.
+    """
+    from django.db.models import Q
+    from .models import Medicine
+
+    medicine = Medicine.objects.filter(pk=medicine_id).first()
+    if not medicine:
+        return []
+
+    scores = defaultdict(float)
+    for med_id, sim in composition_recommendations(medicine_id, top_n=50):
+        scores[med_id] += sim
+
+    candidates = (
+        Medicine.objects.filter(is_active=True)
+        .exclude(pk=medicine_id)
+        .filter(Q(category_id=medicine.category_id) | Q(dosage_form=medicine.dosage_form))
+        .values("id", "category_id", "dosage_form")
+    )
+    for m in candidates:
+        mid = str(m["id"])
+        bonus = 0.0
+        if m["category_id"] == medicine.category_id:
+            bonus += 0.2
+        if m["dosage_form"] == medicine.dosage_form:
+            bonus += 0.1
+        scores[mid] += bonus
+
+    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    return [mid for mid, score in ranked if score > 0][:top_n]
 
 
 # Weight updater (run periodically)

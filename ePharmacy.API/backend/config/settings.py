@@ -173,8 +173,8 @@ CORS_ALLOWED_ORIGINS = [
 # esewa
 ESEWA_PRODUCT_CODE = "EPAYTEST"
 ESEWA_SECRET_KEY = "8gBm/:&EnhH.1/q"
-ESEWA_SUCCESS_URL = "http://localhost:3000/payment/success"
-ESEWA_FAILURE_URL = "http://localhost:3000/payment/failure"
+ESEWA_SUCCESS_URL = "http://localhost:5173/payment/success"
+ESEWA_FAILURE_URL = "http://localhost:5173/payment/failure"
 
 # Sandbox/Test URLs
 ESEWA_PAYMENT_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"

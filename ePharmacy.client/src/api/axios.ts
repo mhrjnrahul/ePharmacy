@@ -1,10 +1,9 @@
 import axios from "axios"
 import { useAuthStore } from "@/store/authStore"
-
-const BASE_URL = "http://127.0.0.1:8000"
+import { API_BASE_URL } from "@/lib/apiUrl"
 
 export const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
 })
 
@@ -60,7 +59,7 @@ api.interceptors.response.use(
     }
 
     try {
-      const { data } = await axios.post(`${BASE_URL}/api/auth/refresh/`, { refresh })
+      const { data } = await axios.post(`${API_BASE_URL}/api/auth/refresh/`, { refresh })
       localStorage.setItem("access_token", data.access)
       useAuthStore.getState().setTokens(data.access, refresh)
       originalRequest.headers.Authorization = `Bearer ${data.access}`

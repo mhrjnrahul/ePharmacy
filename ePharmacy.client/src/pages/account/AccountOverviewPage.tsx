@@ -5,6 +5,7 @@ import { useAllPrescriptions } from "@/hooks/usePrescriptions"
 import { StatTile } from "@/components/ui/stat-tile"
 import { OrderStatusTag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
+import { PageMeta } from "@/components/PageMeta"
 
 const formatRs = (value: number) =>
   `Rs. ${value.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
@@ -23,6 +24,7 @@ const AccountOverviewPage = () => {
 
   return (
     <div className="space-y-6">
+      <PageMeta title="My Account" />
       <div>
         <h1 className="text-xl font-bold tracking-tight text-foreground">Overview</h1>
         <p className="mt-1 text-sm text-muted-foreground">A quick look at your orders and prescriptions</p>

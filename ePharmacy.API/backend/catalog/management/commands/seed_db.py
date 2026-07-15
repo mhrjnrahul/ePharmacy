@@ -206,29 +206,36 @@ class Command(BaseCommand):
 
     def seed_medicines(self, fake, categories, manufacturers):
         """Create medicines with various dosage forms and strengths."""
+        # (name, strength, dosage_form, category_names, composition)
+        # The last three entries are branded products sharing composition
+        # with an existing generic above — real substitute pairs so the
+        # "out of stock -> similar medicines" feature has data to show.
         medicines_data = [
-            ("Paracetamol", "500mg", "tablet", ["Pain Relief"]),
-            ("Ibuprofen", "400mg", "tablet", ["Pain Relief"]),
-            ("Aspirin", "75mg", "tablet", ["Pain Relief", "Cardiovascular"]),
-            ("Amoxicillin", "500mg", "capsule", ["Antibiotics"]),
-            ("Ciprofloxacin", "500mg", "tablet", ["Antibiotics"]),
-            ("Vitamin C", "1000mg", "tablet", ["Vitamins & Supplements"]),
-            ("Vitamin D3", "400IU", "capsule", ["Vitamins & Supplements"]),
-            ("Multivitamin", "Daily", "tablet", ["Vitamins & Supplements"]),
-            ("Cough Syrup", "5ml", "syrup", ["Cold & Flu"]),
-            ("Omeprazole", "20mg", "capsule", ["Digestive Health"]),
-            ("Metformin", "500mg", "tablet", ["Diabetes Management"]),
-            ("Atorvastatin", "10mg", "tablet", ["Cardiovascular"]),
-            ("Lisinopril", "10mg", "tablet", ["Cardiovascular"]),
-            ("Antibiotic Cream", "2%", "cream", ["Skin Care"]),
-            ("Hydrocortisone", "1%", "cream", ["Skin Care"]),
-            ("Diphenhydramine", "25mg", "tablet", ["Cold & Flu"]),
-            ("Ceftriaxone", "250mg", "injection", ["Antibiotics"]),
-            ("Eye Drops", "0.5%", "drops", ["Skin Care"]),
+            ("Paracetamol", "500mg", "tablet", ["Pain Relief"], "Paracetamol"),
+            ("Ibuprofen", "400mg", "tablet", ["Pain Relief"], "Ibuprofen"),
+            ("Aspirin", "75mg", "tablet", ["Pain Relief", "Cardiovascular"], "Aspirin"),
+            ("Amoxicillin", "500mg", "capsule", ["Antibiotics"], "Amoxicillin"),
+            ("Ciprofloxacin", "500mg", "tablet", ["Antibiotics"], "Ciprofloxacin"),
+            ("Vitamin C", "1000mg", "tablet", ["Vitamins & Supplements"], "Ascorbic Acid"),
+            ("Vitamin D3", "400IU", "capsule", ["Vitamins & Supplements"], "Cholecalciferol"),
+            ("Multivitamin", "Daily", "tablet", ["Vitamins & Supplements"], "Multivitamin Complex"),
+            ("Cough Syrup", "5ml", "syrup", ["Cold & Flu"], "Dextromethorphan"),
+            ("Omeprazole", "20mg", "capsule", ["Digestive Health"], "Omeprazole"),
+            ("Metformin", "500mg", "tablet", ["Diabetes Management"], "Metformin"),
+            ("Atorvastatin", "10mg", "tablet", ["Cardiovascular"], "Atorvastatin"),
+            ("Lisinopril", "10mg", "tablet", ["Cardiovascular"], "Lisinopril"),
+            ("Antibiotic Cream", "2%", "cream", ["Skin Care"], "Neomycin"),
+            ("Hydrocortisone", "1%", "cream", ["Skin Care"], "Hydrocortisone"),
+            ("Diphenhydramine", "25mg", "tablet", ["Cold & Flu"], "Diphenhydramine"),
+            ("Ceftriaxone", "250mg", "injection", ["Antibiotics"], "Ceftriaxone"),
+            ("Eye Drops", "0.5%", "drops", ["Skin Care"], "Chloramphenicol"),
+            ("Crocin", "500mg", "tablet", ["Pain Relief"], "Paracetamol"),
+            ("Calpol", "500mg", "tablet", ["Pain Relief"], "Paracetamol"),
+            ("Brufen", "400mg", "tablet", ["Pain Relief"], "Ibuprofen"),
         ]
 
         medicines = []
-        for name, strength, dosage_form, category_names in medicines_data:
+        for name, strength, dosage_form, category_names, composition in medicines_data:
             category_list = [c for c in categories if c.name in category_names]
             category = category_list[0] if category_list else categories[0]
             manufacturer = random.choice(manufacturers)
@@ -241,6 +248,7 @@ class Command(BaseCommand):
                     "description": f"{name} {strength} — {dosage_form} form",
                     "category": category,
                     "manufacturer": manufacturer,
+                    "composition": composition,
                     "requires_prescription": random.choice([True, False]),
                     "is_active": True,
                 },

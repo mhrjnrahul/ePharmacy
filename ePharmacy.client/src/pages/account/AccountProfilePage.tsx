@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useMe, useUpdateProfile, useChangePassword } from "@/hooks/useProfile"
+import { PageMeta } from "@/components/PageMeta"
 import { toast } from "@/store/toastStore"
 
 const inputClass =
@@ -57,6 +58,7 @@ const AccountProfilePage = () => {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
+      <PageMeta title="Profile" />
       {/* Profile */}
       <form onSubmit={handleSaveProfile} className="h-fit rounded-lg border bg-card p-5">
         <h2 className="text-sm font-semibold text-foreground">Profile</h2>

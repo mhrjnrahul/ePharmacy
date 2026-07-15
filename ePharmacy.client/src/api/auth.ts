@@ -29,3 +29,7 @@ export const refreshToken = async (
   });
   return response.data;
 };
+
+export const logoutUser = async (refresh: string): Promise<void> => {
+  await api.post("/api/auth/logout/", { refresh });
+};

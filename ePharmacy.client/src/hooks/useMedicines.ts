@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query"
 import { medicinesApi } from "@/api/medicines"
 import type { CreateMedicineRequest, MedicineListParams, UpdateMedicineRequest } from "@/types/medicine"
 
@@ -8,6 +8,9 @@ export const useMedicines = (params?: MedicineListParams) =>
   useQuery({
     queryKey: params ? [...MEDICINES_KEY, params] : MEDICINES_KEY,
     queryFn: () => medicinesApi.getAll(params),
+    // Keep showing the previous page's results while a new filter/search/page
+    // is loading, instead of flashing back to the skeleton grid every time.
+    placeholderData: keepPreviousData,
   })
 
 /** All medicines, unpaginated — for dropdowns/selects, not the medicines list page. */
@@ -28,6 +31,13 @@ export const useMedicineRecommendations = (id: string | null) =>
     queryKey: [...MEDICINES_KEY, id, "recommendations"],
     queryFn: () => medicinesApi.getRecommendations(id!),
     enabled: !!id,
+  })
+
+export const useMedicineSubstitutes = (id: string | null, enabled = true) =>
+  useQuery({
+    queryKey: [...MEDICINES_KEY, id, "substitutes"],
+    queryFn: () => medicinesApi.getSubstitutes(id!),
+    enabled: !!id && enabled,
   })
 
 export const useRebuildRecommendations = () =>

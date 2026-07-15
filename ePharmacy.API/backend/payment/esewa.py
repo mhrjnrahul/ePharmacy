@@ -66,7 +66,7 @@ def build_payment_payload(order, payment):
     Returns the form fields to send to eSewa payment page.
     The frontend renders these as hidden inputs and auto-submits the form.
     """
-    transaction_uuid = str(payment.id)
+    transaction_uuid = str(payment.transaction_uuid)
     total_amount = str(order.total_amount)
     signature = generate_signature(total_amount, transaction_uuid, ESEWA_PRODUCT_CODE)
 
@@ -92,8 +92,16 @@ def verify_payment(transaction_uuid, total_amount, product_code=None):
 
     Returns (success: bool, response_data: dict)
 
-    eSewa returns status 'COMPLETE' on success.
-    We verify the response signature to prevent tampering.
+    eSewa returns status 'COMPLETE' on success, e.g.:
+        {"product_code": "EPAYTEST", "transaction_uuid": "...",
+         "total_amount": 1000.0, "status": "COMPLETE", "ref_id": "..."}
+
+    No signature is verified here — unlike the browser-redirect `data`
+    payload (which passes through the untrusted client and must be
+    signature-checked), this call goes server-to-server over HTTPS directly
+    to eSewa, which is itself the trust boundary. eSewa's status-check
+    response also doesn't include a signature/signed_field_names field to
+    check even if we wanted to.
     """
     product_code = product_code or ESEWA_PRODUCT_CODE
 
@@ -111,31 +119,5 @@ def verify_payment(transaction_uuid, total_amount, product_code=None):
     except (requests.RequestException, json.JSONDecodeError) as e:
         return False, {"error": str(e)}
 
-    if not _verify_response_signature(data):
-        return False, {"error": "Signature mismatch — possible tampering.", "raw": data}
-
     success = data.get("status") == "COMPLETE"
     return success, data
-
-
-def _verify_response_signature(data):
-    """
-    Verifies the signature in eSewa's response to ensure it wasn't tampered with.
-    """
-    received_signature = data.get("signature", "")
-    signed_fields = data.get("signed_field_names", "")
-
-    if not signed_fields or not received_signature:
-        return False
-
-    message_parts = []
-    for field in signed_fields.split(","):
-        value = data.get(field.strip(), "")
-        message_parts.append(f"{field.strip()}={value}")
-
-    message = ",".join(message_parts)
-    key = ESEWA_SECRET_KEY.encode("utf-8")
-    digest = hmac.new(key, message.encode("utf-8"), hashlib.sha256).digest()
-    expected = base64.b64encode(digest).decode("utf-8")
-
-    return hmac.compare_digest(expected, received_signature)

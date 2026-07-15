@@ -30,7 +30,7 @@ class MedicineAdmin(admin.ModelAdmin):
         "requires_prescription",
         "is_active",
     ]
-    search_fields = ["name", "strength"]
+    search_fields = ["name", "strength", "composition"]
     list_filter = ["dosage_form", "requires_prescription", "is_active", "category"]
     autocomplete_fields = ["category", "manufacturer"]
 

@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary"
 import RootLayout from "@/layouts/RootLayout"
 import AppLayout from "@/layouts/AppLayout"
 import AuthLayout from "@/layouts/AuthLayout"
@@ -16,6 +17,7 @@ import ShopPage from "@/pages/shop/ShopPage"
 import ShopMedicinePage from "@/pages/shop/ShopMedicinePage"
 import CheckoutPage from "@/pages/checkout/CheckoutPage"
 import PaymentSuccessPage from "@/pages/payment/PaymentSuccessPage"
+import PaymentFailurePage from "@/pages/payment/PaymentFailurePage"
 
 // Customer account
 import AccountOverviewPage from "@/pages/account/AccountOverviewPage"
@@ -49,6 +51,7 @@ const OrdersRedirect = () => {
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
 
       // ── Landing (renders its own navbar/footer) ─────────────────────
@@ -96,6 +99,7 @@ export const router = createBrowserRouter([
           // Standalone pages with their own minimal chrome
           { path: "checkout",        element: <CheckoutPage />       },
           { path: "payment/success", element: <PaymentSuccessPage /> },
+          { path: "payment/failure", element: <PaymentFailurePage /> },
         ],
       },
 

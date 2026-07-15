@@ -69,11 +69,29 @@ def checkout(user, delivery_address):
     - Resolves each CartItem → best Batch using FIFO (earliest expiry first)
     - Locks the unit_price from the batch at this moment
     - Stock is NOT deducted yet — deduction happens at CONFIRMED stage
-    - Cart is cleared after successful order creation
+    - Cart is NOT cleared here — it's cleared on Order.confirm(), once
+      payment is actually verified. A PENDING order (unpaid/abandoned
+      checkout) leaves the cart intact so the customer isn't left with an
+      empty cart for a purchase that never went through.
 
     Raises ValueError for any validation failure.
     Returns the created Order.
     """
+    # Stock is only checked (not reserved) here and only deducted at
+    # CONFIRMED — so two PENDING orders can independently pass the stock
+    # check for the same batch, then both get paid, and the second
+    # confirm() fails after payment was already captured. Block a second
+    # PENDING order outright rather than letting that race happen.
+    existing_pending = Order.objects.filter(
+        user=user, status=Order.Status.PENDING
+    ).first()
+    if existing_pending:
+        raise ValueError(
+            f"You already have an unpaid order (#{str(existing_pending.id)[:8]}) "
+            "waiting for payment. Please complete or cancel it from My Orders "
+            "before placing a new one."
+        )
+
     cart = get_or_create_cart(user)
     items = list(cart.items.select_related("medicine").all())
 
@@ -119,9 +137,6 @@ def checkout(user, delivery_address):
                 prescription_item.consumed_by_order = order
                 prescription_item.consumed_at = timezone.now()
                 prescription_item.save(update_fields=["consumed_by_order", "consumed_at", "updated_at"])
-
-        # Clear cart after successful order
-        cart.items.all().delete()
 
     return order
 

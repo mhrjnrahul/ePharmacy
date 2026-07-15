@@ -2,6 +2,7 @@ import { useState } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
 import { LayoutDashboard, Package, FileHeart, UserRound, LogOut, X } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
+import { useLogout } from "@/hooks/useLogout"
 import { LogoutConfirmModal } from "@/components/LogoutConfirmModal"
 import { cn } from "@/lib/utils"
 
@@ -18,7 +19,8 @@ interface AccountSidebarProps {
 }
 
 export const AccountSidebar = ({ open, onClose }: AccountSidebarProps) => {
-  const { user, logout } = useAuthStore()
+  const user = useAuthStore(s => s.user)
+  const logout = useLogout()
   const navigate = useNavigate()
   const [confirmingLogout, setConfirmingLogout] = useState(false)
 

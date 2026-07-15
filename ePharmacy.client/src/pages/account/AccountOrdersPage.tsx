@@ -5,6 +5,7 @@ import { useOrders } from "@/hooks/useOrders"
 import { OrderStatusTag } from "@/components/ui/tag"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pagination } from "@/components/ui/pagination"
+import { PageMeta } from "@/components/PageMeta"
 
 const PAGE_SIZE = 10
 
@@ -17,6 +18,7 @@ const AccountOrdersPage = () => {
   if (isLoading) {
     return (
       <div className="space-y-2">
+        <PageMeta title="My Orders" />
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
         ))}
@@ -26,24 +28,28 @@ const AccountOrdersPage = () => {
 
   if (!orders || orders.length === 0) {
     return (
-      <EmptyState
-        icon={<Package size={24} />}
-        title="No orders yet"
-        description="Medicines you order will show up here with live delivery status."
-        action={
-          <Link
-            to="/shop"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
-          >
-            Browse the shop
-          </Link>
-        }
-      />
+      <>
+        <PageMeta title="My Orders" />
+        <EmptyState
+          icon={<Package size={24} />}
+          title="No orders yet"
+          description="Medicines you order will show up here with live delivery status."
+          action={
+            <Link
+              to="/shop"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            >
+              Browse the shop
+            </Link>
+          }
+        />
+      </>
     )
   }
 
   return (
     <div className="space-y-2">
+      <PageMeta title="My Orders" />
       {orders.map(order => (
         <Link
           key={order.id}

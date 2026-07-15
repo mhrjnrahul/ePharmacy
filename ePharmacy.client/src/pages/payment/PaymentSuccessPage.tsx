@@ -1,131 +1,78 @@
-import { useEffect, useState } from "react"
-import { useSearchParams, Link } from "react-router-dom"
-import { CheckCircle, XCircle, Loader, Pill, ArrowRight } from "lucide-react"
+import { useEffect, useRef } from "react"
+import { useSearchParams, useNavigate } from "react-router-dom"
+import { isAxiosError } from "axios"
+import { Loader } from "lucide-react"
 import { paymentsApi } from "@/api/payments"
-import { green, gray } from "@/components/landing/tokens"
+import { gray } from "@/components/landing/tokens"
 
-type State = "verifying" | "success" | "failed"
-
+/**
+ * eSewa v2 redirects here with ?data=<base64encodedJSON>.
+ * We verify server-side, then hand off to the shop page (with the cart
+ * drawer open) which renders the actual success/failure modal — this page
+ * is just the transient landing spot for the redirect.
+ */
 const PaymentSuccessPage = () => {
   const [searchParams] = useSearchParams()
-  const [state, setState] = useState<State>("verifying")
-  const [transactionId, setTransactionId] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const ran = useRef(false)
 
   useEffect(() => {
+    if (ran.current) return
+    ran.current = true
+
     const verify = async () => {
-      // eSewa v2 redirects with ?data=<base64encodedJSON>
       const rawData = searchParams.get("data")
       if (!rawData) {
-        setState("failed")
+        navigate("/shop", { replace: true, state: { paymentStatus: "failed" } })
         return
       }
 
       try {
-        const decoded = JSON.parse(atob(rawData)) as Record<string, string>
+        // eSewa's `data` value is base64, which routinely contains literal "+"
+        // characters. useSearchParams() is backed by URLSearchParams, which
+        // decodes the query string as application/x-www-form-urlencoded —
+        // every "+" becomes a space before we ever see it. Left uncorrected,
+        // atob() silently decodes the wrong bytes and JSON.parse fails, so a
+        // genuinely successful payment intermittently lands on "failed"
+        // depending on whether that transaction's base64 happened to
+        // contain a "+". Base64 never legitimately contains a raw space, so
+        // restoring it is safe.
+        const base64 = rawData.replace(/ /g, "+")
+        const decoded = JSON.parse(atob(base64)) as Record<string, string>
         const record = await paymentsApi.verify(decoded)
         // A repeat verify (e.g. page refresh) returns {detail: "Payment already verified."}
         if (record.status === "completed" || !record.status) {
-          setTransactionId(record.transaction_id ?? null)
-          setState("success")
+          navigate("/shop", {
+            replace: true,
+            state: { paymentStatus: "success", transactionId: record.transaction_id ?? undefined },
+          })
         } else {
-          setState("failed")
+          navigate("/shop", { replace: true, state: { paymentStatus: "failed" } })
         }
-      } catch {
-        setState("failed")
+      } catch (err) {
+        console.error("Payment verification failed:", err)
+        // 409 = money was captured by eSewa but the order couldn't be
+        // confirmed (e.g. a stock conflict). Distinct from a clean failure —
+        // the customer was charged, so "Payment Failed" would be misleading.
+        if (isAxiosError(err) && err.response?.status === 409) {
+          const detail = err.response.data?.detail
+          navigate("/shop", {
+            replace: true,
+            state: { paymentStatus: "conflict", message: typeof detail === "string" ? detail : undefined },
+          })
+          return
+        }
+        navigate("/shop", { replace: true, state: { paymentStatus: "failed" } })
       }
     }
 
     verify()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [navigate, searchParams])
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: gray[50], display: "flex", flexDirection: "column", fontFamily: "var(--font-sans, system-ui, sans-serif)" }}>
-
-      {/* Simple header */}
-      <header style={{ backgroundColor: "#fff", borderBottom: `1px solid ${gray[200]}`, padding: "0 24px", height: "60px", display: "flex", alignItems: "center", gap: "8px" }}>
-        <div style={{ width: "28px", height: "28px", borderRadius: "8px", backgroundColor: green[600], display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Pill size={14} color="#fff" />
-        </div>
-        <span style={{ fontSize: "15px", fontWeight: 700, color: gray[900] }}>ePharmacy</span>
-      </header>
-
-      {/* Content */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
-        <div style={{ width: "100%", maxWidth: "440px", backgroundColor: "#fff", borderRadius: "20px", border: `1px solid ${gray[200]}`, padding: "40px 24px", textAlign: "center", boxShadow: "0 8px 32px rgba(0,0,0,0.06)", boxSizing: "border-box" }}>
-
-          {state === "verifying" && (
-            <>
-              <div style={{ width: "72px", height: "72px", borderRadius: "50%", backgroundColor: gray[100], display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-                <Loader size={32} color={gray[500]} style={{ animation: "spin 1s linear infinite" }} />
-              </div>
-              <h1 style={{ fontSize: "20px", fontWeight: 700, color: gray[900], margin: "0 0 8px" }}>Verifying Payment…</h1>
-              <p style={{ fontSize: "14px", color: gray[500], margin: 0 }}>Please wait while we confirm your transaction.</p>
-            </>
-          )}
-
-          {state === "success" && (
-            <>
-              <div style={{ width: "72px", height: "72px", borderRadius: "50%", backgroundColor: green[50], display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-                <CheckCircle size={36} color={green[600]} />
-              </div>
-              <h1 style={{ fontSize: "22px", fontWeight: 800, color: gray[900], margin: "0 0 10px" }}>Payment Successful!</h1>
-              <p style={{ fontSize: "14px", color: gray[500], margin: "0 0 8px", lineHeight: 1.6 }}>
-                Your order has been placed and payment confirmed.
-              </p>
-              {transactionId && (
-                <p style={{ fontSize: "12px", color: gray[500], margin: "0 0 28px" }}>
-                  Transaction ID: <span style={{ fontWeight: 600, color: gray[700] }}>{transactionId}</span>
-                </p>
-              )}
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <Link
-                  to="/account/orders"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px", backgroundColor: green[600], color: "#fff", borderRadius: "10px", fontSize: "14px", fontWeight: 600, textDecoration: "none", transition: "background 0.15s" }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = green[700])}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = green[600])}
-                >
-                  View My Orders <ArrowRight size={15} />
-                </Link>
-                <Link
-                  to="/"
-                  style={{ padding: "12px", border: `1px solid ${gray[200]}`, borderRadius: "10px", fontSize: "14px", fontWeight: 500, color: gray[700], textDecoration: "none" }}
-                >
-                  Back to Home
-                </Link>
-              </div>
-            </>
-          )}
-
-          {state === "failed" && (
-            <>
-              <div style={{ width: "72px", height: "72px", borderRadius: "50%", backgroundColor: "#fef2f2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-                <XCircle size={36} color="#dc2626" />
-              </div>
-              <h1 style={{ fontSize: "22px", fontWeight: 800, color: gray[900], margin: "0 0 10px" }}>Payment Failed</h1>
-              <p style={{ fontSize: "14px", color: gray[500], margin: "0 0 28px", lineHeight: 1.6 }}>
-                We couldn't verify your payment. Your cart has not been charged. Please try again.
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <Link
-                  to="/checkout"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px", backgroundColor: green[600], color: "#fff", borderRadius: "10px", fontSize: "14px", fontWeight: 600, textDecoration: "none" }}
-                >
-                  Try Again
-                </Link>
-                <Link
-                  to="/"
-                  style={{ padding: "12px", border: `1px solid ${gray[200]}`, borderRadius: "10px", fontSize: "14px", fontWeight: 500, color: gray[700], textDecoration: "none" }}
-                >
-                  Back to Home
-                </Link>
-              </div>
-            </>
-          )}
-
-        </div>
-      </div>
-
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "12px", backgroundColor: gray[50], fontFamily: "var(--font-sans, system-ui, sans-serif)" }}>
+      <Loader size={28} color={gray[500]} style={{ animation: "spin 1s linear infinite" }} />
+      <p style={{ fontSize: "14px", color: gray[500] }}>Verifying your payment…</p>
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }

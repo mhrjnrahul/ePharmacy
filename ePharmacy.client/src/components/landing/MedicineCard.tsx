@@ -53,7 +53,11 @@ export const MedicineCard = ({ medicine, onDetails }: Props) => {
           }
         },
         onError: () => {
-          toast.error("Failed to add to cart. Please try again.")
+          // Prescription items already showed the warning above — a second
+          // generic failure toast is redundant and reads as a contradiction.
+          if (!medicine.requires_prescription) {
+            toast.error("Failed to add to cart. Please try again.")
+          }
         },
       }
     )

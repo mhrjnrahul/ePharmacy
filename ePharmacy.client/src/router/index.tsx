@@ -16,6 +16,7 @@ import ShopPage from "@/pages/shop/ShopPage"
 import ShopMedicinePage from "@/pages/shop/ShopMedicinePage"
 import CheckoutPage from "@/pages/checkout/CheckoutPage"
 import PaymentSuccessPage from "@/pages/payment/PaymentSuccessPage"
+import PaymentFailurePage from "@/pages/payment/PaymentFailurePage"
 
 // Customer account
 import AccountOverviewPage from "@/pages/account/AccountOverviewPage"
@@ -96,6 +97,7 @@ export const router = createBrowserRouter([
           // Standalone pages with their own minimal chrome
           { path: "checkout",        element: <CheckoutPage />       },
           { path: "payment/success", element: <PaymentSuccessPage /> },
+          { path: "payment/failure", element: <PaymentFailurePage /> },
         ],
       },
 

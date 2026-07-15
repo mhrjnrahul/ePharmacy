@@ -1,11 +1,19 @@
 import { useState, useEffect } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
 import { Search, SlidersHorizontal, PackageSearch } from "lucide-react"
 import { useMedicines } from "@/hooks/useMedicines"
 import { useAllCategories } from "@/hooks/useCategories"
 import { ShopCard, ShopCardSkeleton } from "@/components/shop/ShopCard"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pagination } from "@/components/ui/pagination"
+import { PaymentResultModal } from "@/components/payment/PaymentResultModal"
+import { openCart } from "@/components/landing/CartDrawer"
 import type { DosageForm } from "@/types/medicine"
+
+interface PaymentNavState {
+  paymentStatus?: "success" | "failed"
+  transactionId?: string
+}
 
 const PAGE_SIZE = 10
 
@@ -20,6 +28,22 @@ const DOSAGE_FORMS: { value: DosageForm; label: string }[] = [
 ]
 
 const ShopPage = () => {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const paymentState = location.state as PaymentNavState | null
+  const [paymentResult, setPaymentResult] = useState<PaymentNavState | null>(
+    paymentState?.paymentStatus ? paymentState : null,
+  )
+
+  // Consume the router state once so a refresh/back-navigation doesn't re-show the modal.
+  useEffect(() => {
+    if (paymentState?.paymentStatus) {
+      openCart()
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("")
   const [dosageForm, setDosageForm] = useState<DosageForm | "">("")
@@ -157,6 +181,14 @@ const ShopPage = () => {
           )}
         </div>
       </div>
+
+      {paymentResult?.paymentStatus && (
+        <PaymentResultModal
+          status={paymentResult.paymentStatus}
+          transactionId={paymentResult.transactionId}
+          onClose={() => setPaymentResult(null)}
+        />
+      )}
     </div>
   )
 }

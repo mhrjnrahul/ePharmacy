@@ -67,6 +67,7 @@ export interface CreateMedicineRequest {
   strength: string
   composition: string
   is_active: boolean
+  image?: File | null
 }
 
 export interface UpdateMedicineRequest extends CreateMedicineRequest {}

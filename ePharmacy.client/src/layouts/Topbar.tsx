@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom"
 import { Bell, Menu } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
-import { useDashboardStats } from "@/hooks/useReports"
+import { useAlertCount } from "@/hooks/useReports"
 
 const routeTitles: Record<string, string> = {
   "/admin":                   "Dashboard",
@@ -26,13 +26,9 @@ interface TopbarProps {
 const Topbar = ({ onMenuClick }: TopbarProps) => {
   const { pathname } = useLocation()
   const { user } = useAuthStore()
-  const { data: stats } = useDashboardStats()
+  const alertCount = useAlertCount()
 
   const title = routeTitles[pathname] ?? "ePharmacy"
-  const alertCount =
-    (stats?.inventory.low_stock_count ?? 0) +
-    (stats?.inventory.expiring_soon_count ?? 0) +
-    (stats?.inventory.expired_count ?? 0)
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 sm:px-6">

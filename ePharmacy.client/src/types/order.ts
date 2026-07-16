@@ -68,10 +68,16 @@ export interface PaymentInitiateResponse {
 export interface PaymentRecord {
   id: string
   order: string
+  order_status: OrderStatus
+  gateway: string
   status: PaymentStatus
   amount: string
   transaction_id: string | null
+  gateway_ref: string | null
+  paid_at: string | null
+  refunded_at: string | null
   created_at: string
+  updated_at: string
 }
 
 export interface OrderDetail {

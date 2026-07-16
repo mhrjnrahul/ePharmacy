@@ -10,6 +10,24 @@ import type {
 import type { Paginated } from "@/types/pagination"
 import { fetchAllPages } from "./pagination"
 
+// Medicine writes go multipart only when a new image file is attached — plain
+// JSON otherwise, since re-sending a File object through JSON isn't possible
+// and the backend doesn't require multipart when the image isn't changing.
+const toFormData = (data: CreateMedicineRequest) => {
+  const form = new FormData()
+  form.append("name", data.name)
+  form.append("description", data.description)
+  form.append("category", data.category)
+  form.append("manufacturer", data.manufacturer)
+  form.append("requires_prescription", String(data.requires_prescription))
+  form.append("dosage_form", data.dosage_form)
+  form.append("strength", data.strength)
+  form.append("composition", data.composition)
+  form.append("is_active", String(data.is_active))
+  if (data.image) form.append("image", data.image)
+  return form
+}
+
 export const medicinesApi = {
   getAll: (params?: MedicineListParams) =>
     api.get<Paginated<MedicineListItem>>("/api/catalog/medicines/", { params }).then(r => r.data),
@@ -33,11 +51,28 @@ export const medicinesApi = {
   getSubstitutes: (id: string) =>
     api.get<RecommendationResponse>(`/api/catalog/medicines/${id}/substitutes/`).then(r => r.data),
 
-  create: (data: CreateMedicineRequest) =>
-    api.post<Medicine>("/api/catalog/medicines/", data).then(r => r.data),
+  create: (data: CreateMedicineRequest) => {
+    if (!data.image) {
+      const { image: _image, ...rest } = data
+      return api.post<Medicine>("/api/catalog/medicines/", rest).then(r => r.data)
+    }
+    // Content-Type must stay unset (not "multipart/form-data") so the browser
+    // appends its own boundary parameter when it serializes the FormData —
+    // an explicit value here overrides that and Django can't parse the body.
+    return api
+      .post<Medicine>("/api/catalog/medicines/", toFormData(data), { headers: { "Content-Type": undefined } })
+      .then(r => r.data)
+  },
 
-  update: (id: string, data: UpdateMedicineRequest) =>
-    api.put<Medicine>(`/api/catalog/medicines/${id}/`, data).then(r => r.data),
+  update: (id: string, data: UpdateMedicineRequest) => {
+    if (!data.image) {
+      const { image: _image, ...rest } = data
+      return api.put<Medicine>(`/api/catalog/medicines/${id}/`, rest).then(r => r.data)
+    }
+    return api
+      .put<Medicine>(`/api/catalog/medicines/${id}/`, toFormData(data), { headers: { "Content-Type": undefined } })
+      .then(r => r.data)
+  },
 
   delete: (id: string) =>
     api.delete(`/api/catalog/medicines/${id}/`),

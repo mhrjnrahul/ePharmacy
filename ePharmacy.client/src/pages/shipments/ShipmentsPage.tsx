@@ -127,10 +127,56 @@ const CreateShipmentDialog = ({ onClose }: { onClose: () => void }) => {
   )
 }
 
+// ── Confirm-failure dialog ───────────────────────────────────────────────────
+const ConfirmFailureDialog = ({ shipment, onClose }: { shipment: Shipment; onClose: () => void }) => {
+  const update = useUpdateShipmentStatus()
+
+  const handleConfirm = async () => {
+    try {
+      await update.mutateAsync({ id: shipment.id, status: "failed" })
+      toast.success("Shipment marked failed.")
+      onClose()
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail ?? "Could not update the shipment.")
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
+      <div className="rise-in w-full max-w-md rounded-xl border bg-card p-6 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-foreground">Mark shipment as failed?</h2>
+          <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted">
+            <X size={16} />
+          </button>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Order #{shipment.order.slice(0, 8)} will be recorded as a failed delivery. This currently has
+          no retry path in the console — the shipment stays "failed" until handled manually.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-md border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
+            Not yet
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={update.isPending}
+            className="flex items-center gap-1.5 rounded-md bg-destructive px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+          >
+            {update.isPending && <Loader2 size={13} className="animate-spin" />}
+            Mark failed
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Advance status buttons ───────────────────────────────────────────────────
 const AdvanceButtons = ({ shipment }: { shipment: Shipment }) => {
   const update = useUpdateShipmentStatus()
   const targets = NEXT_STATUS[shipment.status] ?? []
+  const [confirmFailure, setConfirmFailure] = useState(false)
 
   if (targets.length === 0) return <span className="text-xs text-muted-foreground">—</span>
 
@@ -144,23 +190,26 @@ const AdvanceButtons = ({ shipment }: { shipment: Shipment }) => {
   }
 
   return (
-    <div className="flex justify-end gap-1.5">
-      {targets.map(target => (
-        <button
-          key={target}
-          onClick={() => advance(target)}
-          disabled={update.isPending}
-          className={cn(
-            "rounded-md border px-2.5 py-1 text-xs font-semibold capitalize disabled:opacity-60",
-            target === "failed"
-              ? "border-destructive/40 text-destructive hover:bg-destructive-soft"
-              : "text-foreground hover:bg-muted",
-          )}
-        >
-          {target.replace(/_/g, " ")}
-        </button>
-      ))}
-    </div>
+    <>
+      <div className="flex justify-end gap-1.5">
+        {targets.map(target => (
+          <button
+            key={target}
+            onClick={() => (target === "failed" ? setConfirmFailure(true) : advance(target))}
+            disabled={update.isPending}
+            className={cn(
+              "rounded-md border px-2.5 py-1 text-xs font-semibold capitalize disabled:opacity-60",
+              target === "failed"
+                ? "border-destructive/40 text-destructive hover:bg-destructive-soft"
+                : "text-foreground hover:bg-muted",
+            )}
+          >
+            {target.replace(/_/g, " ")}
+          </button>
+        ))}
+      </div>
+      {confirmFailure && <ConfirmFailureDialog shipment={shipment} onClose={() => setConfirmFailure(false)} />}
+    </>
   )
 }
 
@@ -168,7 +217,7 @@ const AdvanceButtons = ({ shipment }: { shipment: Shipment }) => {
 const ShipmentsPage = () => {
   const [statusFilter, setStatusFilter] = useState<ShipmentStatus | "">("")
   const [page, setPage] = useState(1)
-  const { data, isLoading } = useShipments({ ...(statusFilter ? { status: statusFilter } : {}), page })
+  const { data, isLoading, isError, refetch } = useShipments({ ...(statusFilter ? { status: statusFilter } : {}), page })
   const shipments = data?.results
   const totalCount = data?.count ?? 0
   const [createOpen, setCreateOpen] = useState(false)
@@ -213,6 +262,17 @@ const ShipmentsPage = () => {
             <div key={i} className="h-12 animate-pulse rounded-lg bg-muted" />
           ))}
         </div>
+      ) : isError ? (
+        <EmptyState
+          icon={<Truck size={24} />}
+          title="Could not load shipments"
+          description="Check your connection and try again."
+          action={
+            <button onClick={() => refetch()} className="rounded-md border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted">
+              Retry
+            </button>
+          }
+        />
       ) : !shipments || shipments.length === 0 ? (
         <EmptyState
           icon={<Truck size={24} />}

@@ -4,20 +4,9 @@ import {
   UserX, RotateCcw, Eye, EyeOff,
 } from "lucide-react"
 import { useAllUsers, useCreateStaff, useDeleteUser, useRestoreUser } from "@/hooks/useUsers"
+import { useAuthStore } from "@/store/authStore"
+import { gray, green, red, blue, purple, adminInputStyle as inputStyle } from "@/lib/adminTokens"
 import type { UserRead, AdminCreateRequest } from "@/types/auth"
-
-// ── tokens ────────────────────────────────────────────────────────────────────
-const green  = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857" }
-const gray   = { 50: "#f9fafb", 100: "#f3f4f6", 200: "#e5e7eb", 400: "#9ca3af", 500: "#6b7280", 700: "#374151", 900: "#111827" }
-const red    = { 50: "#fef2f2", 100: "#fee2e2", 600: "#dc2626", 700: "#b91c1c" }
-const blue   = { 50: "#eff6ff", 100: "#dbeafe", 700: "#1d4ed8" }
-const purple = { 50: "#faf5ff", 700: "#6d28d9" }
-
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", border: `1px solid ${gray[200]}`,
-  borderRadius: "8px", fontSize: "13px", color: gray[900], outline: "none",
-  boxSizing: "border-box", backgroundColor: "#ffffff",
-}
 
 // ── role meta ─────────────────────────────────────────────────────────────────
 const roleMeta: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
@@ -111,8 +100,10 @@ const CreateStaffModal = ({ onClose }: CreateStaffModalProps) => {
             <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Role *</label>
             <select style={{ ...inputStyle, cursor: "pointer" }} value={form.role} onChange={e => set("role", e.target.value as "ADMIN" | "STAFF" | "CUSTOMER")}>
               <option value="STAFF">Staff</option>
-              <option value="ADMIN">Admin</option>
             </select>
+            <p style={{ fontSize: "11px", color: gray[400], margin: 0 }}>
+              Admin accounts can't be created from this console.
+            </p>
           </div>
 
           {error && (
@@ -195,6 +186,7 @@ const UserManagementPage = () => {
   const { data: users = [], isLoading, isError } = useAllUsers()
   const deleteUser  = useDeleteUser()
   const restoreUser = useRestoreUser()
+  const currentUserId = useAuthStore(s => s.user?.id)
 
   const [createOpen,    setCreateOpen   ] = useState(false)
   const [confirmTarget, setConfirmTarget] = useState<{ user: UserRead; action: "delete" | "restore" } | null>(null)
@@ -387,7 +379,11 @@ const UserManagementPage = () => {
                     {/* Actions */}
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px", justifyContent: "flex-end" }}>
-                        {user.is_active ? (
+                        {user.id === currentUserId ? (
+                          <span title="You can't deactivate your own account" style={{ fontSize: "12px", color: gray[400] }}>
+                            This is you
+                          </span>
+                        ) : user.is_active ? (
                           <button
                             onClick={() => { setConfirmTarget({ user, action: "delete" }); setActionError("") }}
                             style={{ display: "flex", alignItems: "center", gap: "5px", padding: "5px 10px", borderRadius: "6px", border: `1px solid ${red[100]}`, backgroundColor: red[50], fontSize: "12px", color: red[700], cursor: "pointer", fontWeight: 500 }}

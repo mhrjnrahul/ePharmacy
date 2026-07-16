@@ -41,18 +41,20 @@ The application serves three kinds of users through one codebase:
 - Shopping cart with live stock/price checks
 - Checkout with delivery address validation and online payment via eSewa
 - Upload prescriptions and track their approval status
-- "Frequently bought together" and cart-based product recommendations
+- "Frequently bought together" and cart-based product recommendations, plus in-stock substitute suggestions for out-of-stock medicines
 - Order history with live shipment tracking
 - Personal account dashboard (order/spend summary, pending prescriptions, recent orders)
 
 **Staff / Admin console**
 - Central dashboard with revenue, order, and stock-alert widgets, plus a 30-day sales trend chart
-- Order management with an enforced status pipeline and cancellation with automatic stock restoration
+- Order management with an enforced status pipeline, cancellation with automatic stock restoration, and a payment status/refund view per order
 - Prescription review workflow — approve specific medicines/quantities or reject with a reason shown to the customer
 - Batch-level inventory management: add batches, adjust stock manually, view the full movement ledger, write off expired stock
 - Low-stock / expiring-soon / expired stock alerts with configurable thresholds
 - Shipment dispatch and delivery tracking, synced back to order status
-- Catalog management (medicines, categories, manufacturers) and staff/customer user management
+- Catalog management (medicines, categories, manufacturers) with search/filtering and photo uploads
+- A dedicated view for curating medicine relations (companion medicines, frequently-bought-together pairs) that feed the recommendation engine
+- Staff and customer account management, including a customer detail view with prescription history
 - Sales reports: revenue trends, top-selling medicines, recommendation-weight rebuilding
 
 ## Tech Stack
@@ -138,11 +140,12 @@ A customer uploads a prescription image/PDF as a standalone document — it isn'
 Once an order reaches Processing, staff can create a shipment, which progresses **Preparing → Dispatched → Out for Delivery → Delivered** (or **Failed**). Shipment status changes automatically sync back to the parent order's status (e.g. dispatching a shipment moves the order to "Shipped").
 
 ### Recommendation engine
-Two signals feed a combined "you might also like" score for a medicine or a whole cart:
-1. **Content-based** — hand-curated medicine relations (e.g. a companion medicine for side effects, or items frequently bought together).
+Three signals feed a combined "you might also like" score for a medicine or a whole cart:
+1. **Content-based** — hand-curated medicine relations (e.g. a companion medicine for side effects, or items frequently bought together), manageable from the admin console.
 2. **Collaborative filtering** — cosine similarity over a co-purchase matrix built from real order history.
+3. **Composition-based** — Jaccard similarity over each medicine's active-ingredient list, which also powers **substitute suggestions**: if a medicine is out of stock, customers are shown in-stock alternatives that share its composition.
 
-Scores from both signals are weighted and summed to rank suggestions; the "frequently bought together" weights can be recomputed on demand from the latest order history.
+Scores from the content-based and collaborative signals are weighted and summed to rank suggestions; the "frequently bought together" weights can be recomputed on demand from the latest order history.
 
 ### Payment (eSewa)
 Checkout creates a `Pending` payment record and returns a signed form payload (HMAC-SHA256) that the frontend auto-submits to eSewa's hosted payment page. After the customer completes payment, eSewa redirects back with a signed response, which the backend independently re-verifies against eSewa's transaction-status API before marking the payment (and the underlying order) as confirmed. Failed or tampered verifications are rejected.

@@ -7,6 +7,16 @@ export const useDashboardStats = () =>
     queryFn: reportsApi.dashboard,
   })
 
+/** Combined low-stock + expiring-soon + expired count — used by both the sidebar and topbar badges. */
+export const useAlertCount = () => {
+  const { data: stats } = useDashboardStats()
+  return (
+    (stats?.inventory.low_stock_count ?? 0) +
+    (stats?.inventory.expiring_soon_count ?? 0) +
+    (stats?.inventory.expired_count ?? 0)
+  )
+}
+
 export const useSalesTrend = (days = 30) =>
   useQuery({
     queryKey: ["reports", "sales-trend", days],

@@ -12,10 +12,11 @@ export const useBatches = (params?: { medicine?: string; is_active?: boolean; pa
   })
 
 /** All matching batches, unpaginated — for dropdowns/selects, not the inventory list page. */
-export const useAllBatches = (params?: { medicine?: string; is_active?: boolean }) =>
+export const useAllBatches = (params?: { medicine?: string; is_active?: boolean }, enabled = true) =>
   useQuery({
     queryKey: [...BATCHES_KEY, "all", params],
     queryFn: () => inventoryApi.getAllBatchesUnpaginated(params),
+    enabled,
   })
 
 export const useBatchDetail = (id: string | null) =>

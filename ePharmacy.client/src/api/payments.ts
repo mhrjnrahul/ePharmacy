@@ -11,6 +11,9 @@ export const paymentsApi = {
 
   getByOrder: (orderId: string) =>
     api.get<PaymentRecord>(`/api/payment/${orderId}/`).then(r => r.data),
+
+  refund: (orderId: string, reason: string) =>
+    api.post<PaymentRecord>(`/api/payment/${orderId}/refund/`, { reason }).then(r => r.data),
 }
 
 /** Submits the eSewa form fields programmatically — triggers browser redirect to eSewa. */

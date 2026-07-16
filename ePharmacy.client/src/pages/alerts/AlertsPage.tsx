@@ -89,7 +89,7 @@ const SectionCard = ({
 const AlertsPage = () => {
   const [threshold, setThreshold] = useState(10)
   const [expiryDays, setExpiryDays] = useState(30)
-  const { data, isLoading, isError } = useInventorySummary({
+  const { data, isLoading, isError, refetch } = useInventorySummary({
     low_stock_threshold: threshold,
     expiry_days: expiryDays,
   })
@@ -101,6 +101,11 @@ const AlertsPage = () => {
         icon={<AlertTriangle size={24} />}
         title="Could not load stock alerts"
         description="The inventory service did not respond. Refresh to try again."
+        action={
+          <button onClick={() => refetch()} className="rounded-md border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted">
+            Retry
+          </button>
+        }
       />
     )
   }

@@ -2,13 +2,11 @@ import { useState } from "react"
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
-import { BarChart2, Loader2, RefreshCcw } from "lucide-react"
+import { BarChart2 } from "lucide-react"
 import { useSalesTrend, useTopSelling } from "@/hooks/useReports"
-import { useRebuildRecommendations } from "@/hooks/useMedicines"
 import { PageHeader } from "@/components/ui/page-header"
 import { StatTile } from "@/components/ui/stat-tile"
 import { EmptyState } from "@/components/ui/empty-state"
-import { toast } from "@/store/toastStore"
 import { cn } from "@/lib/utils"
 
 const RANGES = [
@@ -26,9 +24,8 @@ const formatDay = (iso: string) =>
 
 const ReportsPage = () => {
   const [days, setDays] = useState(30)
-  const { data: trend, isLoading: trendLoading, isError } = useSalesTrend(days)
+  const { data: trend, isLoading: trendLoading, isError, refetch } = useSalesTrend(days)
   const { data: top, isLoading: topLoading } = useTopSelling({ days, limit: 10 })
-  const rebuild = useRebuildRecommendations()
 
   const totalRevenue = trend?.results.reduce((sum, p) => sum + Number(p.revenue), 0) ?? 0
   const totalOrders = trend?.results.reduce((sum, p) => sum + p.orders, 0) ?? 0
@@ -37,46 +34,24 @@ const ReportsPage = () => {
     trend.results[0],
   )
 
-  const handleRebuild = async () => {
-    try {
-      const result = await rebuild.mutateAsync()
-      toast.success(
-        `Recommendation weights rebuilt from order history — ${result.created} created, ${result.updated} updated.`,
-      )
-    } catch {
-      toast.error("Could not rebuild recommendations.")
-    }
-  }
-
   if (isError) {
     return (
       <EmptyState
         icon={<BarChart2 size={24} />}
         title="Could not load reports"
         description="The reports service did not respond. Refresh to try again."
+        action={
+          <button onClick={() => refetch()} className="rounded-md border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted">
+            Retry
+          </button>
+        }
       />
     )
   }
 
   return (
     <div>
-      <PageHeader
-        title="Reports"
-        description="Sales performance and best sellers"
-        actions={
-          <button
-            onClick={handleRebuild}
-            disabled={rebuild.isPending}
-            title="Recompute 'frequently bought together' from the latest order history"
-            className="flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-60"
-          >
-            {rebuild.isPending
-              ? <Loader2 size={14} className="animate-spin" />
-              : <RefreshCcw size={14} />}
-            Rebuild recommendations
-          </button>
-        }
-      />
+      <PageHeader title="Reports" description="Sales performance and best sellers" />
 
       {/* Range filter — one row above the charts */}
       <div className="mb-4 flex gap-1 rounded-md bg-muted p-1 w-fit">

@@ -2,7 +2,7 @@ import { useState } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
 import { useAuthStore } from "@/store/authStore"
 import { useLogout } from "@/hooks/useLogout"
-import { useDashboardStats } from "@/hooks/useReports"
+import { useDashboardStats, useAlertCount } from "@/hooks/useReports"
 import {
   LayoutDashboard, Pill, Tags, Factory, Users, Package,
   ClipboardList, ArrowLeftRight, BarChart2, UserCog,
@@ -97,13 +97,11 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
       return next
     })
 
+  const alertCount = useAlertCount()
   const badgeCounts = {
     orders: stats?.orders.pending ?? 0,
     prescriptions: stats?.prescriptions.pending ?? 0,
-    alerts:
-      (stats?.inventory.low_stock_count ?? 0) +
-      (stats?.inventory.expiring_soon_count ?? 0) +
-      (stats?.inventory.expired_count ?? 0),
+    alerts: alertCount,
   }
 
   const handleLogout = () => {

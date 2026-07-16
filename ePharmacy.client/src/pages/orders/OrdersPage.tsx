@@ -1,38 +1,18 @@
 import { useState, useEffect } from "react"
-import {
-  X, Loader2, ShoppingCart,  ChevronRight,
-  Clock, CheckCircle, Package, Truck, Star, XCircle,
-} from "lucide-react"
+import { Loader2, ShoppingCart, ChevronRight, X } from "lucide-react"
 import { useOrders, useOrderDetail, useUpdateOrderStatus, useCancelOrder } from "@/hooks/useOrders"
+import { usePaymentByOrder, useRefundPayment } from "@/hooks/usePayments"
+import { PageHeader } from "@/components/ui/page-header"
+import { OrderStatusTag, Tag, type TagTone } from "@/components/ui/tag"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Pagination } from "@/components/ui/pagination"
-import type { OrderList, OrderStatus } from "@/types/order"
+import { toast } from "@/store/toastStore"
+import { cn } from "@/lib/utils"
+import type { OrderList, OrderStatus, PaymentStatus } from "@/types/order"
 
 const PAGE_SIZE = 10
 
-// ── tokens ────────────────────────────────────────────────────────────────────
-const green  = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857" }
-const gray   = { 50: "#f9fafb", 100: "#f3f4f6", 200: "#e5e7eb", 400: "#9ca3af", 500: "#6b7280", 700: "#374151", 900: "#111827" }
-const red    = { 50: "#fef2f2", 100: "#fee2e2", 600: "#dc2626", 700: "#b91c1c" }
-const amber  = { 50: "#fffbeb", 100: "#fef3c7", 600: "#d97706", 700: "#b45309" }
-const blue   = { 50: "#eff6ff", 100: "#dbeafe", 600: "#2563eb", 700: "#1d4ed8" }
-const purple = { 50: "#faf5ff", 100: "#ede9fe", 700: "#6d28d9" }
-const teal   = { 50: "#f0fdfa", 100: "#ccfbf1", 700: "#0f766e" }
-
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", border: `1px solid ${gray[200]}`,
-  borderRadius: "8px", fontSize: "13px", color: gray[900], outline: "none",
-  boxSizing: "border-box", backgroundColor: "#ffffff",
-}
-
-// ── status meta ───────────────────────────────────────────────────────────────
-const statusMeta: Record<OrderStatus, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  pending:    { label: "Pending",    color: amber[700],  bg: amber[50],  icon: <Clock size={12} />       },
-  confirmed:  { label: "Confirmed",  color: blue[700],   bg: blue[50],   icon: <CheckCircle size={12} /> },
-  processing: { label: "Processing", color: purple[700], bg: purple[50], icon: <Package size={12} />     },
-  shipped:    { label: "Shipped",    color: teal[700],   bg: teal[50],   icon: <Truck size={12} />       },
-  delivered:  { label: "Delivered",  color: green[700],  bg: green[50],  icon: <Star size={12} />        },
-  cancelled:  { label: "Cancelled",  color: red[700],    bg: red[50],    icon: <XCircle size={12} />     },
-}
+const STATUSES: OrderStatus[] = ["pending", "confirmed", "processing", "shipped", "delivered"]
 
 // next valid status transitions for staff
 const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
@@ -42,80 +22,75 @@ const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
   shipped:    "delivered",
 }
 
-const STATUS_FILTER_OPTIONS: { value: OrderStatus | ""; label: string }[] = [
-  { value: "",           label: "All statuses" },
-  { value: "pending",    label: "Pending"      },
-  { value: "confirmed",  label: "Confirmed"    },
-  { value: "processing", label: "Processing"   },
-  { value: "shipped",    label: "Shipped"      },
-  { value: "delivered",  label: "Delivered"    },
-  { value: "cancelled",  label: "Cancelled"    },
+const STATUS_FILTERS: { value: OrderStatus | ""; label: string }[] = [
+  { value: "",           label: "All"        },
+  { value: "pending",    label: "Pending"    },
+  { value: "confirmed",  label: "Confirmed"  },
+  { value: "processing", label: "Processing" },
+  { value: "shipped",    label: "Shipped"    },
+  { value: "delivered",  label: "Delivered"  },
+  { value: "cancelled",  label: "Cancelled"  },
 ]
 
-// ── cancel modal ──────────────────────────────────────────────────────────────
-interface CancelModalProps {
-  orderId: string
-  orderStatus: OrderStatus
-  onClose: () => void
-  onCancelled: () => void
+const PAYMENT_STATUS_TONE: Record<PaymentStatus, TagTone> = {
+  pending:   "warning",
+  completed: "success",
+  failed:    "danger",
+  refunded:  "neutral",
 }
 
-const CancelModal = ({ orderId, onClose, onCancelled }: CancelModalProps) => {
+// ── Cancel dialog ────────────────────────────────────────────────────────────
+const CancelDialog = ({ orderId, onClose, onCancelled }: { orderId: string; onClose: () => void; onCancelled: () => void }) => {
   const cancel = useCancelOrder()
   const [reason, setReason] = useState("")
-  const [error, setError] = useState("")
 
-  const handleSubmit = async () => {
-    setError("")
+  const handleConfirm = async () => {
     try {
       await cancel.mutateAsync({ id: orderId, reason: reason || undefined })
+      toast.success("Order cancelled. Any deducted stock has been restored.")
       onCancelled()
       onClose()
     } catch (err: any) {
-      setError(err?.response?.data?.detail ?? "Failed to cancel order.")
+      toast.error(err?.response?.data?.detail ?? "Failed to cancel order.")
     }
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: "24px" }}>
-      <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px", width: "100%", maxWidth: "420px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: 600, color: gray[900], margin: 0 }}>Cancel Order</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: gray[400], display: "flex", padding: "4px" }}>
-            <X size={18} />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-6">
+      <div className="rise-in w-full max-w-md rounded-xl border bg-card p-6 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-foreground">Cancel order</h2>
+          <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted">
+            <X size={16} />
           </button>
         </div>
 
-        <p style={{ fontSize: "13px", color: gray[500], margin: "0 0 16px 0", lineHeight: 1.6 }}>
+        <p className="text-sm text-muted-foreground">
           Are you sure you want to cancel this order? If stock was already deducted, it will be restored automatically.
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
-          <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Reason (optional)</label>
+        <label className="mt-4 block text-xs font-medium text-foreground">
+          Reason (optional)
           <textarea
-            style={{ ...inputStyle, minHeight: "72px", resize: "vertical" }}
             value={reason}
             onChange={e => setReason(e.target.value)}
-            placeholder="e.g. Customer requested cancellation..."
+            rows={2}
+            placeholder="e.g. Customer requested cancellation…"
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
           />
-        </div>
+        </label>
 
-        {error && (
-          <div style={{ padding: "10px 12px", backgroundColor: red[50], borderRadius: "8px", border: `1px solid ${red[100]}`, marginBottom: "16px" }}>
-            <p style={{ fontSize: "13px", color: red[700], margin: 0 }}>{error}</p>
-          </div>
-        )}
-
-        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: "8px", border: `1px solid ${gray[200]}`, backgroundColor: "#fff", fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>
-            Keep Order
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-md border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
+            Keep order
           </button>
           <button
-            onClick={handleSubmit} disabled={cancel.isPending}
-            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 18px", borderRadius: "8px", border: "none", backgroundColor: red[600], fontSize: "13px", fontWeight: 600, color: "#fff", cursor: cancel.isPending ? "not-allowed" : "pointer", opacity: cancel.isPending ? 0.7 : 1 }}
+            onClick={handleConfirm}
+            disabled={cancel.isPending}
+            className="flex items-center gap-1.5 rounded-md bg-destructive px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
           >
-            {cancel.isPending && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
-            Cancel Order
+            {cancel.isPending && <Loader2 size={13} className="animate-spin" />}
+            Cancel order
           </button>
         </div>
       </div>
@@ -123,120 +98,273 @@ const CancelModal = ({ orderId, onClose, onCancelled }: CancelModalProps) => {
   )
 }
 
-// ── order detail drawer ───────────────────────────────────────────────────────
-interface OrderDrawerProps {
-  orderId: string
-  onClose: () => void
-}
-
-const OrderDrawer = ({ orderId, onClose }: OrderDrawerProps) => {
-  const { data: order, isLoading } = useOrderDetail(orderId)
+// ── Advance-status confirm dialog ────────────────────────────────────────────
+const AdvanceDialog = ({
+  orderId, next, onClose, onAdvanced,
+}: { orderId: string; next: OrderStatus; onClose: () => void; onAdvanced: () => void }) => {
   const updateStatus = useUpdateOrderStatus()
-  const [cancelOpen, setCancelOpen] = useState(false)
-  const [statusError, setStatusError] = useState("")
 
-  const handleAdvanceStatus = async () => {
-    if (!order) return
-    const next = nextStatus[order.status]
-    if (!next) return
-    setStatusError("")
+  const handleConfirm = async () => {
     try {
-      await updateStatus.mutateAsync({ id: order.id, status: next })
+      await updateStatus.mutateAsync({ id: orderId, status: next })
+      toast.success(`Order marked ${next}.`)
+      onAdvanced()
+      onClose()
     } catch (err: any) {
-      setStatusError(err?.response?.data?.detail ?? "Failed to update status.")
+      toast.error(err?.response?.data?.detail ?? "Failed to update status.")
     }
   }
 
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-6">
+      <div className="rise-in w-full max-w-md rounded-xl border bg-card p-6 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold capitalize text-foreground">Mark as {next}</h2>
+          <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted">
+            <X size={16} />
+          </button>
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          {next === "confirmed"
+            ? "Confirming this order deducts the reserved stock from inventory. This can only be undone by cancelling the order."
+            : `This will move the order to "${next}". The customer will see this status update.`}
+        </p>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-md border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
+            Not yet
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={updateStatus.isPending}
+            className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+          >
+            {updateStatus.isPending && <Loader2 size={13} className="animate-spin" />}
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Refund dialog ─────────────────────────────────────────────────────────────
+const RefundDialog = ({ orderId, onClose }: { orderId: string; onClose: () => void }) => {
+  const refund = useRefundPayment()
+  const [reason, setReason] = useState("")
+  const tooShort = reason.trim().length > 0 && reason.trim().length < 5
+
+  const handleConfirm = async () => {
+    if (reason.trim().length < 5) return
+    try {
+      await refund.mutateAsync({ orderId, reason: reason.trim() })
+      toast.success("Payment marked as refunded.")
+      onClose()
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail ?? err?.response?.data?.reason?.[0] ?? "Could not process the refund.")
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-6">
+      <div className="rise-in w-full max-w-md rounded-xl border bg-card p-6 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-foreground">Refund payment</h2>
+          <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted">
+            <X size={16} />
+          </button>
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          This marks the payment as refunded in our records. eSewa refunds must still be issued separately
+          through the merchant portal — this action only updates our books.
+        </p>
+
+        <label className="mt-4 block text-xs font-medium text-foreground">
+          Reason
+          <textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            rows={2}
+            placeholder="e.g. Order cancelled after payment; refund issued to customer"
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+          />
+          {tooShort && <span className="mt-1 block text-xs text-destructive">At least 5 characters.</span>}
+        </label>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-md border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted">
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={refund.isPending || reason.trim().length < 5}
+            className="flex items-center gap-1.5 rounded-md bg-destructive px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+          >
+            {refund.isPending && <Loader2 size={13} className="animate-spin" />}
+            Refund payment
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Payment section (inside drawer) ──────────────────────────────────────────
+const PaymentSection = ({ orderId }: { orderId: string }) => {
+  const { data: payment, isLoading } = usePaymentByOrder(orderId)
+  const [refundOpen, setRefundOpen] = useState(false)
+
+  if (isLoading) return <div className="h-20 animate-pulse rounded-lg bg-muted" />
+
+  if (!payment) {
+    return (
+      <div className="rounded-lg bg-muted/30 p-3.5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payment</p>
+        <p className="mt-1.5 text-sm text-muted-foreground">No payment has been initiated for this order yet.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-lg bg-muted/30 p-3.5">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payment</p>
+        <Tag tone={PAYMENT_STATUS_TONE[payment.status]}>{payment.status}</Tag>
+      </div>
+
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+        <span className="text-muted-foreground">Gateway</span>
+        <span className="text-right uppercase text-foreground">{payment.gateway}</span>
+
+        <span className="text-muted-foreground">Amount</span>
+        <span className="tnum text-right font-medium text-foreground">Rs. {payment.amount}</span>
+
+        {payment.transaction_id && (
+          <>
+            <span className="text-muted-foreground">Transaction</span>
+            <span className="tnum text-right text-foreground">{payment.transaction_id}</span>
+          </>
+        )}
+        {payment.paid_at && (
+          <>
+            <span className="text-muted-foreground">Paid</span>
+            <span className="tnum text-right text-foreground">{new Date(payment.paid_at).toLocaleString()}</span>
+          </>
+        )}
+        {payment.refunded_at && (
+          <>
+            <span className="text-muted-foreground">Refunded</span>
+            <span className="tnum text-right text-foreground">{new Date(payment.refunded_at).toLocaleString()}</span>
+          </>
+        )}
+      </div>
+
+      {payment.status === "completed" && (
+        <button
+          onClick={() => setRefundOpen(true)}
+          className="mt-3 rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive-soft"
+        >
+          Refund payment
+        </button>
+      )}
+
+      {refundOpen && <RefundDialog orderId={orderId} onClose={() => setRefundOpen(false)} />}
+    </div>
+  )
+}
+
+// ── order detail drawer ───────────────────────────────────────────────────────
+const OrderDrawer = ({ orderId, onClose }: { orderId: string; onClose: () => void }) => {
+  const { data: order, isLoading, refetch } = useOrderDetail(orderId)
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [advanceTarget, setAdvanceTarget] = useState<OrderStatus | null>(null)
+
   const canCancel = order && order.status !== "delivered" && order.status !== "cancelled"
-  const canAdvance = order && !!nextStatus[order.status]
+  const next = order ? nextStatus[order.status] : undefined
 
   return (
     <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.3)", zIndex: 40 }} />
-      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "min(520px, 100vw)", backgroundColor: "#fff", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column" }}>
+      <div onClick={onClose} className="fixed inset-0 z-40 bg-black/30" />
+      <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[520px] flex-col bg-card shadow-2xl">
 
-        {/* Header */}
-        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${gray[200]}`, flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: 600, color: gray[900], margin: 0 }}>Order Details</h2>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: gray[400], display: "flex", padding: "4px" }}>
+        <div className="flex-shrink-0 border-b px-6 py-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-foreground">Order details</h2>
+            <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted">
               <X size={18} />
             </button>
           </div>
           {order && (
-            <p style={{ fontSize: "12px", color: gray[400], margin: "4px 0 0 0" }}>
-              {order.id.slice(0, 8).toUpperCase()} · {new Date(order.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+            <p className="tnum mt-1 text-xs text-muted-foreground">
+              #{order.id.slice(0, 8).toUpperCase()} · {new Date(order.created_at).toLocaleString()}
             </p>
           )}
         </div>
 
-        {/* Content */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {isLoading ? (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "200px", gap: "10px", color: gray[400] }}>
-              <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
-              <span style={{ fontSize: "13px" }}>Loading order…</span>
+            <div className="flex h-48 items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 size={16} className="animate-spin" />
+              <span className="text-sm">Loading order…</span>
             </div>
           ) : !order ? null : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div className="space-y-5">
 
-              {/* Status + actions */}
-              <div style={{ backgroundColor: gray[50], borderRadius: "12px", padding: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: canAdvance || canCancel ? "12px" : "0" }}>
-                  <div>
-                    <p style={{ fontSize: "11px", fontWeight: 600, color: gray[400], textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px 0" }}>Status</p>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 12px", borderRadius: "20px", backgroundColor: statusMeta[order.status].bg }}>
-                      <span style={{ color: statusMeta[order.status].color }}>{statusMeta[order.status].icon}</span>
-                      <span style={{ fontSize: "13px", fontWeight: 600, color: statusMeta[order.status].color }}>{statusMeta[order.status].label}</span>
-                    </div>
-                  </div>
+              {/* Status + progress */}
+              <div className="rounded-lg bg-muted/30 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
+                  <OrderStatusTag status={order.status} />
                 </div>
 
-                {/* Status progress */}
-                <div style={{ display: "flex", alignItems: "center", gap: "0", marginBottom: canAdvance || canCancel ? "12px" : "0" }}>
-                  {(["pending", "confirmed", "processing", "shipped", "delivered"] as OrderStatus[]).map((s, idx, arr) => {
-                    const statuses: OrderStatus[] = ["pending", "confirmed", "processing", "shipped", "delivered"]
-                    const currentIdx = statuses.indexOf(order.status)
-                    const stepIdx = statuses.indexOf(s)
-                    const isDone = order.status === "cancelled" ? false : stepIdx <= currentIdx
-                    const isActive = s === order.status && order.status !== "cancelled"
+                <div className="mt-3 flex items-center">
+                  {STATUSES.map((s, idx) => {
+                    const currentIdx = STATUSES.indexOf(order.status)
+                    const stepIdx = STATUSES.indexOf(s)
+                    const isDone = order.status !== "cancelled" && stepIdx <= currentIdx
                     return (
-                      <div key={s} style={{ display: "flex", alignItems: "center", flex: idx < arr.length - 1 ? 1 : 0 }}>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-                          <div style={{
-                            width: "24px", height: "24px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                            backgroundColor: isDone ? green[600] : gray[200],
-                            border: isActive ? `2px solid ${green[600]}` : "none",
-                            flexShrink: 0,
-                          }}>
-                            {isDone && <span style={{ color: "#fff", fontSize: "10px" }}>✓</span>}
+                      <div key={s} className={cn("flex items-center", idx < STATUSES.length - 1 ? "flex-1" : "")}>
+                        <div className="flex flex-col items-center gap-1">
+                          <div className={cn(
+                            "flex h-6 w-6 items-center justify-center rounded-full text-[10px] text-white",
+                            isDone ? "bg-primary" : "bg-muted text-muted-foreground",
+                          )}>
+                            {isDone && "✓"}
                           </div>
-                          <span style={{ fontSize: "9px", color: isDone ? green[700] : gray[400], fontWeight: isDone ? 600 : 400, whiteSpace: "nowrap", textTransform: "capitalize" }}>{s}</span>
+                          <span className={cn(
+                            "whitespace-nowrap text-[9px] capitalize",
+                            isDone ? "font-semibold text-foreground" : "text-muted-foreground",
+                          )}>
+                            {s}
+                          </span>
                         </div>
-                        {idx < arr.length - 1 && (
-                          <div style={{ flex: 1, height: "2px", backgroundColor: stepIdx < (order.status === "cancelled" ? -1 : statuses.indexOf(order.status)) ? green[600] : gray[200], margin: "0 4px", marginBottom: "16px" }} />
+                        {idx < STATUSES.length - 1 && (
+                          <div className={cn(
+                            "mx-1 mb-4 h-0.5 flex-1",
+                            stepIdx < currentIdx && order.status !== "cancelled" ? "bg-primary" : "bg-muted",
+                          )} />
                         )}
                       </div>
                     )
                   })}
                 </div>
 
-                {/* Action buttons */}
-                {(canAdvance || canCancel) && (
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    {canAdvance && (
+                {(next || canCancel) && (
+                  <div className="mt-3 flex gap-2">
+                    {next && (
                       <button
-                        onClick={handleAdvanceStatus} disabled={updateStatus.isPending}
-                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "8px 12px", borderRadius: "8px", border: "none", backgroundColor: green[600], fontSize: "13px", fontWeight: 600, color: "#fff", cursor: updateStatus.isPending ? "not-allowed" : "pointer", opacity: updateStatus.isPending ? 0.7 : 1 }}
+                        onClick={() => setAdvanceTarget(next)}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold capitalize text-primary-foreground hover:opacity-90"
                       >
-                        {updateStatus.isPending && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
-                        Mark as {statusMeta[nextStatus[order.status]!].label}
+                        Mark as {next}
                       </button>
                     )}
                     {canCancel && (
                       <button
                         onClick={() => setCancelOpen(true)}
-                        style={{ padding: "8px 14px", borderRadius: "8px", border: `1px solid ${red[100]}`, backgroundColor: red[50], fontSize: "13px", fontWeight: 500, color: red[600], cursor: "pointer" }}
+                        className="rounded-md border border-destructive/40 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive-soft"
                       >
                         Cancel
                       </button>
@@ -244,55 +372,50 @@ const OrderDrawer = ({ orderId, onClose }: OrderDrawerProps) => {
                   </div>
                 )}
 
-                {statusError && (
-                  <div style={{ padding: "8px 12px", backgroundColor: red[50], borderRadius: "8px", border: `1px solid ${red[100]}`, marginTop: "8px" }}>
-                    <p style={{ fontSize: "12px", color: red[700], margin: 0 }}>{statusError}</p>
-                  </div>
-                )}
-
                 {order.status === "cancelled" && order.cancellation_reason && (
-                  <div style={{ padding: "10px 12px", backgroundColor: red[50], borderRadius: "8px", border: `1px solid ${red[100]}`, marginTop: "8px" }}>
-                    <p style={{ fontSize: "12px", color: red[700], margin: 0 }}>
-                      <strong>Cancellation reason:</strong> {order.cancellation_reason}
-                    </p>
+                  <div className="mt-3 rounded-md border border-destructive/30 bg-destructive-soft p-2.5 text-xs text-destructive">
+                    <strong>Cancellation reason:</strong> {order.cancellation_reason}
                   </div>
                 )}
               </div>
+
+              {/* Payment */}
+              <PaymentSection orderId={order.id} />
 
               {/* Customer + delivery */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div style={{ backgroundColor: gray[50], borderRadius: "10px", padding: "14px" }}>
-                  <p style={{ fontSize: "11px", fontWeight: 600, color: gray[400], textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px 0" }}>Customer</p>
-                  <p style={{ fontSize: "13px", color: gray[900], margin: 0 }}>{order.customer_email}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-muted/30 p-3.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer</p>
+                  <p className="mt-1.5 text-sm text-foreground">{order.customer_email}</p>
                 </div>
-                <div style={{ backgroundColor: gray[50], borderRadius: "10px", padding: "14px" }}>
-                  <p style={{ fontSize: "11px", fontWeight: 600, color: gray[400], textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px 0" }}>Delivery Address</p>
-                  <p style={{ fontSize: "13px", color: gray[900], margin: 0 }}>{order.delivery_address || "—"}</p>
+                <div className="rounded-lg bg-muted/30 p-3.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Delivery address</p>
+                  <p className="mt-1.5 text-sm text-foreground">{order.delivery_address || "—"}</p>
                 </div>
               </div>
 
-              {/* Order items */}
+              {/* Items */}
               <div>
-                <p style={{ fontSize: "13px", fontWeight: 600, color: gray[700], margin: "0 0 10px 0" }}>Items</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <p className="mb-2 text-sm font-semibold text-foreground">Items</p>
+                <div className="space-y-2">
                   {order.items.map(item => (
-                    <div key={item.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", backgroundColor: gray[50], borderRadius: "10px", border: `1px solid ${gray[200]}` }}>
+                    <div key={item.id} className="flex items-center justify-between rounded-lg border bg-muted/30 px-3.5 py-3">
                       <div>
-                        <p style={{ fontSize: "13px", fontWeight: 500, color: gray[900], margin: "0 0 2px 0" }}>{item.medicine_name}</p>
-                        <p style={{ fontSize: "11px", color: gray[400], margin: 0 }}>
+                        <p className="text-sm font-medium text-foreground">{item.medicine_name}</p>
+                        <p className="text-xs text-muted-foreground">
                           Batch: {item.batch_number} · Qty: {item.quantity} × Rs. {item.unit_price}
                         </p>
                       </div>
-                      <p style={{ fontSize: "13px", fontWeight: 600, color: gray[900], margin: 0 }}>Rs. {item.subtotal}</p>
+                      <p className="tnum text-sm font-semibold text-foreground">Rs. {item.subtotal}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Total */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", backgroundColor: green[50], borderRadius: "10px", border: `1px solid ${green[100]}` }}>
-                <span style={{ fontSize: "14px", fontWeight: 600, color: gray[700] }}>Total Amount</span>
-                <span style={{ fontSize: "18px", fontWeight: 700, color: green[700] }}>Rs. {order.total_amount}</span>
+              <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary-soft px-4 py-3.5">
+                <span className="text-sm font-semibold text-foreground">Total amount</span>
+                <span className="tnum text-lg font-bold text-foreground">Rs. {order.total_amount}</span>
               </div>
 
             </div>
@@ -301,11 +424,14 @@ const OrderDrawer = ({ orderId, onClose }: OrderDrawerProps) => {
       </div>
 
       {cancelOpen && order && (
-        <CancelModal
+        <CancelDialog orderId={order.id} onClose={() => setCancelOpen(false)} onCancelled={() => refetch()} />
+      )}
+      {advanceTarget && order && (
+        <AdvanceDialog
           orderId={order.id}
-          orderStatus={order.status}
-          onClose={() => setCancelOpen(false)}
-          onCancelled={onClose}
+          next={advanceTarget}
+          onClose={() => setAdvanceTarget(null)}
+          onAdvanced={() => refetch()}
         />
       )}
     </>
@@ -319,7 +445,7 @@ const OrdersPage = () => {
   const [page, setPage] = useState(1)
 
   const params = { ...(filterStatus ? { status: filterStatus } : {}), page }
-  const { data, isLoading, isError } = useOrders(params)
+  const { data, isLoading, isError, refetch } = useOrders(params)
   const orders = data?.results ?? []
   const totalCount = data?.count ?? 0
 
@@ -330,139 +456,90 @@ const OrdersPage = () => {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
 
-  if (isLoading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "200px", gap: "10px", color: gray[500] }}>
-      <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
-      <span style={{ fontSize: "14px" }}>Loading orders…</span>
-    </div>
-  )
-
-  if (isError) return (
-    <div style={{ padding: "20px 24px", backgroundColor: red[50], borderRadius: "12px", border: `1px solid ${red[100]}` }}>
-      <p style={{ fontSize: "14px", color: red[700], margin: 0 }}>Failed to load orders. Check your connection and try again.</p>
-    </div>
-  )
-
   return (
     <div>
-      {/* Page header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
-        <div>
-          <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>Orders</h1>
-          <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
-            {totalCount} {totalCount === 1 ? "order" : "orders"}
-            {filterStatus && ` · filtered by ${statusMeta[filterStatus].label}`}
-          </p>
-        </div>
+      <PageHeader
+        title="Orders"
+        description={`${totalCount} ${totalCount === 1 ? "order" : "orders"}${filterStatus ? ` · filtered by ${filterStatus}` : ""}`}
+      />
+
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-md bg-muted p-1">
+        {STATUS_FILTERS.map(f => (
+          <button
+            key={f.label}
+            onClick={() => setFilterStatus(f.value)}
+            className={cn(
+              "whitespace-nowrap rounded-sm px-3 py-1 text-xs font-medium transition-colors",
+              filterStatus === f.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
-      {/* Status filter tabs */}
-      <div style={{ display: "flex", gap: "6px", marginBottom: "20px", flexWrap: "wrap" }}>
-        {STATUS_FILTER_OPTIONS.map(opt => {
-          const isActive = filterStatus === opt.value
-          const meta = opt.value ? statusMeta[opt.value] : null
-          return (
-            <button
-              key={opt.value}
-              onClick={() => setFilterStatus(opt.value)}
-              style={{
-                display: "flex", alignItems: "center", gap: "5px",
-                padding: "6px 14px", borderRadius: "20px", border: "1px solid",
-                borderColor: isActive ? (meta ? meta.color : gray[700]) : gray[200],
-                backgroundColor: isActive ? (meta ? meta.bg : gray[100]) : "#fff",
-                color: isActive ? (meta ? meta.color : gray[700]) : gray[500],
-                fontSize: "12px", fontWeight: isActive ? 600 : 400, cursor: "pointer",
-              }}
-            >
-              {meta && <span>{meta.icon}</span>}
-              {opt.label}
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-12 animate-pulse rounded-lg bg-muted" />
+          ))}
+        </div>
+      ) : isError ? (
+        <EmptyState
+          icon={<ShoppingCart size={24} />}
+          title="Could not load orders"
+          description="Check your connection and try again."
+          action={
+            <button onClick={() => refetch()} className="rounded-md border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted">
+              Retry
             </button>
-          )
-        })}
-      </div>
-
-      {/* Empty state */}
-      {orders.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "64px 24px", backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}` }}>
-          <div style={{ width: "48px", height: "48px", borderRadius: "12px", backgroundColor: blue[50], display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <ShoppingCart size={22} color={blue[600]} />
-          </div>
-          <p style={{ fontSize: "15px", fontWeight: 600, color: gray[900], margin: "0 0 6px 0" }}>No orders found</p>
-          <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
-            {filterStatus ? `No ${statusMeta[filterStatus].label.toLowerCase()} orders.` : "Orders will appear here once customers start placing them."}
-          </p>
-        </div>
+          }
+        />
+      ) : orders.length === 0 ? (
+        <EmptyState
+          icon={<ShoppingCart size={24} />}
+          title="No orders found"
+          description={filterStatus ? `No ${filterStatus} orders.` : "Orders will appear here once customers start placing them."}
+        />
       ) : (
-        <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}`, overflowX: "auto" }}>
-          <table style={{ width: "100%", minWidth: "720px", borderCollapse: "collapse" }}>
+        <div className="overflow-x-auto rounded-lg border bg-card">
+          <table className="w-full text-sm">
             <thead>
-              <tr style={{ backgroundColor: gray[50], borderBottom: `1px solid ${gray[200]}` }}>
-                {["Order ID", "Status", "Amount", "Delivery Address", "Date", "Actions"].map(h => (
-                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: gray[500], textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
-                    {h}
-                  </th>
-                ))}
+              <tr className="border-b text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <th className="px-4 py-2.5">Order</th>
+                <th className="px-4 py-2.5">Status</th>
+                <th className="px-4 py-2.5">Amount</th>
+                <th className="px-4 py-2.5">Delivery address</th>
+                <th className="px-4 py-2.5">Date</th>
+                <th className="px-4 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {orders.map((order: OrderList, i) => {
-                const meta = statusMeta[order.status]
-                return (
-                  <tr
-                    key={order.id}
-                    style={{ borderBottom: i < orders.length - 1 ? `1px solid ${gray[100]}` : "none", transition: "background 0.1s", cursor: "pointer" }}
-                    onClick={() => setSelectedOrderId(order.id)}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = gray[50])}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
-                  >
-                    {/* Order ID */}
-                    <td style={{ padding: "12px 16px" }}>
-                      <code style={{ fontSize: "12px", color: gray[700], backgroundColor: gray[100], padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
-                        #{order.id.slice(0, 8).toUpperCase()}
-                      </code>
-                    </td>
-
-                    {/* Status */}
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 10px", borderRadius: "20px", backgroundColor: meta.bg }}>
-                        <span style={{ color: meta.color }}>{meta.icon}</span>
-                        <span style={{ fontSize: "12px", fontWeight: 500, color: meta.color }}>{meta.label}</span>
-                      </div>
-                    </td>
-
-                    {/* Amount */}
-                    <td style={{ padding: "12px 16px" }}>
-                      <span style={{ fontSize: "13px", fontWeight: 600, color: gray[900] }}>Rs. {order.total_amount}</span>
-                    </td>
-
-                    {/* Delivery address */}
-                    <td style={{ padding: "12px 16px", maxWidth: "200px" }}>
-                      <span style={{ fontSize: "13px", color: gray[500], overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
-                        {order.delivery_address || "—"}
-                      </span>
-                    </td>
-
-                    {/* Date */}
-                    <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
-                      <span style={{ fontSize: "12px", color: gray[400] }}>{formatDate(order.created_at)}</span>
-                    </td>
-
-                    {/* Actions */}
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "4px", justifyContent: "flex-end" }}>
-                        <button
-                          onClick={e => { e.stopPropagation(); setSelectedOrderId(order.id) }}
-                          style={{ display: "flex", alignItems: "center", gap: "4px", padding: "5px 10px", borderRadius: "6px", border: `1px solid ${gray[200]}`, backgroundColor: "#fff", fontSize: "12px", color: gray[500], cursor: "pointer" }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = gray[50] }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#fff" }}
-                        >
-                          View <ChevronRight size={12} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
+              {orders.map((order: OrderList) => (
+                <tr
+                  key={order.id}
+                  className="cursor-pointer border-b last:border-0 hover:bg-muted/50"
+                  onClick={() => setSelectedOrderId(order.id)}
+                >
+                  <td className="px-4 py-2.5">
+                    <code className="rounded bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">
+                      #{order.id.slice(0, 8).toUpperCase()}
+                    </code>
+                  </td>
+                  <td className="px-4 py-2.5"><OrderStatusTag status={order.status} /></td>
+                  <td className="tnum px-4 py-2.5 font-semibold text-foreground">Rs. {order.total_amount}</td>
+                  <td className="max-w-[200px] truncate px-4 py-2.5 text-muted-foreground">{order.delivery_address || "—"}</td>
+                  <td className="tnum px-4 py-2.5 text-muted-foreground">{formatDate(order.created_at)}</td>
+                  <td className="px-4 py-2.5 text-right">
+                    <button
+                      onClick={e => { e.stopPropagation(); setSelectedOrderId(order.id) }}
+                      className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted"
+                    >
+                      View <ChevronRight size={12} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -471,10 +548,7 @@ const OrdersPage = () => {
       <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
 
       {selectedOrderId && (
-        <OrderDrawer
-          orderId={selectedOrderId}
-          onClose={() => setSelectedOrderId(null)}
-        />
+        <OrderDrawer orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
       )}
     </div>
   )

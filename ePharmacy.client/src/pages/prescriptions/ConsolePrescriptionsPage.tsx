@@ -28,6 +28,26 @@ interface ApprovalItem {
   approved_quantity: number
 }
 
+// Reads DRF field-level errors (e.g. {"items": ["Duplicate medicines…"]} or
+// {"items": [{"medicine": ["..."]}, ...]} from a list serializer) instead of
+// only ever falling back to a generic message.
+const extractErrorMessage = (err: any, fallback: string): string => {
+  const data = err?.response?.data
+  if (!data) return fallback
+  if (typeof data.detail === "string") return data.detail
+  if (Array.isArray(data.items)) {
+    for (const entry of data.items) {
+      if (typeof entry === "string") return entry
+      if (entry && typeof entry === "object") {
+        const firstField = Object.values(entry)[0]
+        if (Array.isArray(firstField) && firstField.length) return String(firstField[0])
+      }
+    }
+  }
+  if (Array.isArray(data.non_field_errors) && data.non_field_errors.length) return String(data.non_field_errors[0])
+  return fallback
+}
+
 // ── Review pane ──────────────────────────────────────────────────────────────
 const ReviewPane = ({ id, onClose }: { id: string; onClose: () => void }) => {
   const { data: rx, isLoading } = usePrescriptionDetail(id)
@@ -51,12 +71,17 @@ const ReviewPane = ({ id, onClose }: { id: string; onClose: () => void }) => {
       toast.error("Add at least one medicine this prescription covers.")
       return
     }
+    const medicineIds = validItems.map(i => i.medicine)
+    if (new Set(medicineIds).size !== medicineIds.length) {
+      toast.error("The same medicine is selected more than once — combine it into a single row.")
+      return
+    }
     try {
       await approve.mutateAsync({ id, items: validItems, notes: notes || undefined })
       toast.success("Prescription approved. The customer can now order these medicines.")
       onClose()
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail ?? "Could not approve the prescription.")
+      toast.error(extractErrorMessage(err, "Could not approve the prescription."))
     }
   }
 
@@ -70,7 +95,7 @@ const ReviewPane = ({ id, onClose }: { id: string; onClose: () => void }) => {
       toast.success("Prescription rejected. The customer will see your reason.")
       onClose()
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail ?? "Could not reject the prescription.")
+      toast.error(extractErrorMessage(err, "Could not reject the prescription."))
     }
   }
 

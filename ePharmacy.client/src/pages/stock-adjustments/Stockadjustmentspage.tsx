@@ -1,27 +1,15 @@
 import { useState, useEffect } from "react"
 import {
-  X, Loader2, ArrowUpDown, TrendingUp, TrendingDown,
+  Loader2, ArrowUpDown, TrendingUp, TrendingDown,
   RotateCcw, Wrench, Trash2, Filter, Plus,
 } from "lucide-react"
-import { useMovements, useStockAdjust, useAllBatches } from "@/hooks/useInventory"
-import { useAllMedicines } from "@/hooks/useMedicines"
+import { useMovements } from "@/hooks/useInventory"
 import { Pagination } from "@/components/ui/pagination"
-import type { StockAdjustRequest, MovementType } from "@/types/inventory"
+import { AdjustStockForm } from "@/components/inventory/AdjustStockForm"
+import { gray, green, red, amber, blue, adminInputStyle as inputStyle } from "@/lib/adminTokens"
+import type { MovementType } from "@/types/inventory"
 
 const PAGE_SIZE = 10
-
-// ── tokens ────────────────────────────────────────────────────────────────────
-const green = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857" }
-const gray  = { 50: "#f9fafb", 100: "#f3f4f6", 200: "#e5e7eb", 400: "#9ca3af", 500: "#6b7280", 700: "#374151", 900: "#111827" }
-const red   = { 50: "#fef2f2", 100: "#fee2e2", 600: "#dc2626", 700: "#b91c1c" }
-const amber = { 50: "#fffbeb", 100: "#fef3c7", 600: "#d97706", 700: "#b45309" }
-const blue  = { 50: "#eff6ff", 100: "#dbeafe", 600: "#2563eb", 700: "#1d4ed8" }
-
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", border: `1px solid ${gray[200]}`,
-  borderRadius: "8px", fontSize: "13px", color: gray[900], outline: "none",
-  boxSizing: "border-box", backgroundColor: "#ffffff",
-}
 
 // ── movement meta ─────────────────────────────────────────────────────────────
 const movementMeta: Record<MovementType, { icon: React.ReactNode; label: string; color: string; bg: string }> = {
@@ -40,159 +28,6 @@ const MOVEMENT_TYPE_OPTIONS: { value: MovementType | ""; label: string }[] = [
   { value: "adjustment",   label: "Adjustment"    },
   { value: "expired_out",  label: "Expired Out"   },
 ]
-
-// ── adjust modal ──────────────────────────────────────────────────────────────
-interface AdjustModalProps { onClose: () => void }
-
-const AdjustModal = ({ onClose }: AdjustModalProps) => {
-  const adjust = useStockAdjust()
-  const { data: medicines = [] } = useAllMedicines()
-  const [selectedMedicine, setSelectedMedicine] = useState("")
-  const { data: batches = [] } = useAllBatches(
-    selectedMedicine ? { medicine: selectedMedicine } : undefined
-  )
-
-  const [form, setForm] = useState<StockAdjustRequest>({
-    batch: "", quantity: 1, direction: "in", notes: "",
-  })
-  const [error, setError] = useState("")
-
-  const handleSubmit = async () => {
-    if (!form.batch)          { setError("Please select a batch.");       return }
-    if (form.quantity < 1)    { setError("Quantity must be at least 1."); return }
-    if (!form.notes.trim())   { setError("Reason is required.");          return }
-    setError("")
-    try {
-      await adjust.mutateAsync(form)
-      onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? "Something went wrong. Please try again.")
-    }
-  }
-
-  return (
-    <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "24px" }}>
-      <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px", width: "100%", maxWidth: "480px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: 600, color: gray[900], margin: 0 }}>Manual Stock Adjustment</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: gray[400], display: "flex", padding: "4px" }}>
-            <X size={18} />
-          </button>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-
-          {/* Step 1 — pick medicine to filter batches */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Medicine</label>
-            <select
-              style={{ ...inputStyle, cursor: "pointer" }}
-              value={selectedMedicine}
-              onChange={e => { setSelectedMedicine(e.target.value); setForm(f => ({ ...f, batch: "" })) }}
-            >
-              <option value="">Select medicine to filter batches</option>
-              {medicines.filter(m => m.is_active).map(m => (
-                <option key={m.id} value={m.id}>{m.name} — {m.strength}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Step 2 — pick batch */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Batch *</label>
-            <select
-              style={{ ...inputStyle, cursor: "pointer" }}
-              value={form.batch}
-              onChange={e => setForm(f => ({ ...f, batch: e.target.value }))}
-              disabled={!selectedMedicine}
-            >
-              <option value="">
-                {selectedMedicine ? (batches.length === 0 ? "No active batches found" : "Select batch") : "Select a medicine first"}
-              </option>
-              {batches.filter(b => b.is_active).map(b => (
-                <option key={b.id} value={b.id}>
-                  {b.batch_number} — {b.quantity_available} units · Rs. {b.selling_price} · Exp: {new Date(b.expiry_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Direction */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Direction *</label>
-            <div style={{ display: "flex", gap: "8px" }}>
-              {(["in", "out"] as const).map(dir => (
-                <button
-                  key={dir}
-                  onClick={() => setForm(f => ({ ...f, direction: dir }))}
-                  style={{
-                    flex: 1, padding: "8px", borderRadius: "8px", border: "2px solid",
-                    borderColor: form.direction === dir ? (dir === "in" ? green[600] : red[600]) : gray[200],
-                    backgroundColor: form.direction === dir ? (dir === "in" ? green[50] : red[50]) : "#fff",
-                    color: form.direction === dir ? (dir === "in" ? green[700] : red[700]) : gray[500],
-                    fontSize: "13px", fontWeight: 600, cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                  }}
-                >
-                  {dir === "in" ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                  Stock {dir === "in" ? "In" : "Out"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Quantity */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Quantity *</label>
-            <input
-              type="number" min={1} style={inputStyle}
-              value={form.quantity}
-              onChange={e => setForm(f => ({ ...f, quantity: Number(e.target.value) }))}
-            />
-          </div>
-
-          {/* Notes */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Reason *</label>
-            <textarea
-              style={{ ...inputStyle, minHeight: "72px", resize: "vertical" }}
-              value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              placeholder="e.g. Damaged during delivery, recount correction, write-off..."
-            />
-          </div>
-
-          {/* Info note */}
-          <div style={{ padding: "10px 12px", backgroundColor: amber[50], borderRadius: "8px", border: `1px solid ${amber[100]}` }}>
-            <p style={{ fontSize: "12px", color: amber[700], margin: 0 }}>
-              Use this only for manual corrections — damaged goods, recounts, or write-offs. Sales and purchases are tracked automatically.
-            </p>
-          </div>
-
-          {error && (
-            <div style={{ padding: "10px 12px", backgroundColor: red[50], borderRadius: "8px", border: `1px solid ${red[100]}` }}>
-              <p style={{ fontSize: "13px", color: red[700], margin: 0 }}>{error}</p>
-            </div>
-          )}
-        </div>
-
-        <div style={{ display: "flex", gap: "10px", marginTop: "24px", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: "8px", border: `1px solid ${gray[200]}`, backgroundColor: "#fff", fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit} disabled={adjust.isPending}
-            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 18px", borderRadius: "8px", border: "none", backgroundColor: green[600], fontSize: "13px", fontWeight: 600, color: "#fff", cursor: adjust.isPending ? "not-allowed" : "pointer", opacity: adjust.isPending ? 0.7 : 1 }}
-          >
-            {adjust.isPending && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
-            Apply Adjustment
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── page ──────────────────────────────────────────────────────────────────────
 const StockAdjustmentsPage = () => {
@@ -365,7 +200,7 @@ const StockAdjustmentsPage = () => {
 
       <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
 
-      {adjustOpen && <AdjustModal onClose={() => setAdjustOpen(false)} />}
+      {adjustOpen && <AdjustStockForm batch={null} onClose={() => setAdjustOpen(false)} />}
     </div>
   )
 }

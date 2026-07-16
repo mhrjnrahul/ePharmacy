@@ -186,7 +186,7 @@ const TopSellingCard = () => {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 const DashboardPage = () => {
-  const { data: stats, isLoading, isError } = useDashboardStats()
+  const { data: stats, isLoading, isError, refetch } = useDashboardStats()
 
   if (isError) {
     return (
@@ -194,6 +194,11 @@ const DashboardPage = () => {
         icon={<AlertTriangle size={24} />}
         title="Could not load the dashboard"
         description="The reports service did not respond. Check that the backend is running, then refresh."
+        action={
+          <button onClick={() => refetch()} className="rounded-md border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted">
+            Retry
+          </button>
+        }
       />
     )
   }

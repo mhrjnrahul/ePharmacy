@@ -20,13 +20,16 @@ export const prescriptionsApi = {
   getById: (id: string) =>
     api.get<PrescriptionDetail>(`/api/prescriptions/${id}/`).then(r => r.data),
 
-  // Customer uploads an image or PDF — multipart, not JSON
+  // Customer uploads an image or PDF — multipart, not JSON. Content-Type must
+  // stay unset so the browser appends its own boundary parameter — an
+  // explicit "multipart/form-data" value overrides that and Django can't
+  // parse the body.
   upload: (file: File) => {
     const form = new FormData()
     form.append("image", file)
     return api
       .post<PrescriptionDetail>("/api/prescriptions/", form, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { "Content-Type": undefined },
       })
       .then(r => r.data)
   },

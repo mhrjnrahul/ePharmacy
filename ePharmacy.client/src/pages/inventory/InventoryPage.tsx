@@ -6,26 +6,15 @@ import {
 } from "lucide-react"
 import {
   useBatches, useCreateBatch, useUpdateBatch,
-  useStockAdjust, useBatchMovements, useInventorySummary,
+  useBatchMovements, useInventorySummary,
 } from "@/hooks/useInventory"
 import { useAllMedicines } from "@/hooks/useMedicines"
 import { Pagination } from "@/components/ui/pagination"
-import type { BatchList, CreateBatchRequest, UpdateBatchRequest, StockAdjustRequest, MovementType } from "@/types/inventory"
+import { AdjustStockForm } from "@/components/inventory/AdjustStockForm"
+import { gray, green, red, amber, blue, adminInputStyle as inputStyle } from "@/lib/adminTokens"
+import type { BatchList, CreateBatchRequest, UpdateBatchRequest, MovementType } from "@/types/inventory"
 
 const PAGE_SIZE = 10
-
-// ── tokens ────────────────────────────────────────────────────────────────────
-const green = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857" }
-const gray  = { 50: "#f9fafb", 100: "#f3f4f6", 200: "#e5e7eb", 400: "#9ca3af", 500: "#6b7280", 700: "#374151", 900: "#111827" }
-const red   = { 50: "#fef2f2", 100: "#fee2e2", 600: "#dc2626", 700: "#b91c1c" }
-const amber = { 50: "#fffbeb", 100: "#fef3c7", 600: "#d97706", 700: "#b45309" }
-const blue  = { 50: "#eff6ff", 100: "#dbeafe", 600: "#2563eb", 700: "#1d4ed8" }
-
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", border: `1px solid ${gray[200]}`,
-  borderRadius: "8px", fontSize: "13px", color: gray[900], outline: "none",
-  boxSizing: "border-box", backgroundColor: "#ffffff",
-}
 
 // ── movement meta ─────────────────────────────────────────────────────────────
 const movementMeta: Record<MovementType, { icon: React.ReactNode; color: string; bg: string }> = {
@@ -155,18 +144,18 @@ const AddBatchModal = ({ onClose, medicines }: AddBatchModalProps) => {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Initial Quantity *</label>
-              <input type="number" min={1} style={inputStyle} value={form.initial_quantity} onChange={e => set("initial_quantity", Number(e.target.value))} placeholder="e.g. 100" />
+              <input type="number" min={1} max={1000000} style={inputStyle} value={form.initial_quantity} onChange={e => set("initial_quantity", Number(e.target.value))} placeholder="e.g. 100" />
             </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Purchase Price (Rs.) *</label>
-              <input type="number" min={0} step="0.01" style={inputStyle} value={form.purchase_price} onChange={e => set("purchase_price", e.target.value)} placeholder="0.00" />
+              <input type="number" min={0} max={10000000} step="0.01" style={inputStyle} value={form.purchase_price} onChange={e => set("purchase_price", e.target.value)} placeholder="0.00" />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Selling Price (Rs.) *</label>
-              <input type="number" min={0} step="0.01" style={inputStyle} value={form.selling_price} onChange={e => set("selling_price", e.target.value)} placeholder="0.00" />
+              <input type="number" min={0} max={10000000} step="0.01" style={inputStyle} value={form.selling_price} onChange={e => set("selling_price", e.target.value)} placeholder="0.00" />
             </div>
           </div>
 
@@ -244,7 +233,7 @@ const EditBatchModal = ({ batch, medicineName, onClose }: EditBatchModalProps) =
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Selling Price (Rs.) *</label>
             <input
-              type="number" min={0} step="0.01" style={inputStyle}
+              type="number" min={0} max={10000000} step="0.01" style={inputStyle}
               value={form.selling_price}
               onChange={e => setForm(f => ({ ...f, selling_price: e.target.value }))}
             />
@@ -283,111 +272,6 @@ const EditBatchModal = ({ batch, medicineName, onClose }: EditBatchModalProps) =
           >
             {updateBatch.isPending && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
             Save Changes
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── adjust stock modal ────────────────────────────────────────────────────────
-interface AdjustModalProps {
-  batch: BatchList
-  medicineName: string
-  onClose: () => void
-}
-
-const AdjustModal = ({ batch, medicineName, onClose }: AdjustModalProps) => {
-  const adjust = useStockAdjust()
-  const [form, setForm] = useState<Omit<StockAdjustRequest, "batch">>({
-    quantity: 1, direction: "in", notes: "",
-  })
-  const [error, setError] = useState("")
-
-  const handleSubmit = async () => {
-    if (form.quantity < 1)    { setError("Quantity must be at least 1."); return }
-    if (!form.notes.trim())   { setError("Reason/notes are required.");   return }
-    setError("")
-    try {
-      await adjust.mutateAsync({ batch: batch.id, ...form })
-      onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? "Something went wrong.")
-    }
-  }
-
-  return (
-    <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-      <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px", width: "100%", maxWidth: "420px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: 600, color: gray[900], margin: 0 }}>Adjust Stock</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: gray[400], display: "flex", padding: "4px" }}>
-            <X size={18} />
-          </button>
-        </div>
-
-        <p style={{ fontSize: "12px", color: gray[400], margin: "0 0 20px 0" }}>
-          {medicineName} · {batch.batch_number} · Current stock: <strong style={{ color: gray[700] }}>{batch.quantity_available}</strong>
-        </p>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Direction *</label>
-            <div style={{ display: "flex", gap: "8px" }}>
-              {(["in", "out"] as const).map(dir => (
-                <button
-                  key={dir}
-                  onClick={() => setForm(f => ({ ...f, direction: dir }))}
-                  style={{
-                    flex: 1, padding: "8px", borderRadius: "8px", border: "2px solid",
-                    borderColor: form.direction === dir ? (dir === "in" ? green[600] : red[600]) : gray[200],
-                    backgroundColor: form.direction === dir ? (dir === "in" ? green[50] : red[50]) : "#fff",
-                    color: form.direction === dir ? (dir === "in" ? green[700] : red[700]) : gray[500],
-                    fontSize: "13px", fontWeight: 600, cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                  }}
-                >
-                  {dir === "in" ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                  Stock {dir === "in" ? "In" : "Out"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Quantity *</label>
-            <input type="number" min={1} style={inputStyle} value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: Number(e.target.value) }))} />
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Reason / Notes *</label>
-            <textarea
-              style={{ ...inputStyle, minHeight: "72px", resize: "vertical" }}
-              value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              placeholder="e.g. Damaged during delivery, recount correction..."
-            />
-          </div>
-
-          {error && (
-            <div style={{ padding: "10px 12px", backgroundColor: red[50], borderRadius: "8px", border: `1px solid ${red[100]}` }}>
-              <p style={{ fontSize: "13px", color: red[700], margin: 0 }}>{error}</p>
-            </div>
-          )}
-        </div>
-
-        <div style={{ display: "flex", gap: "10px", marginTop: "24px", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: "8px", border: `1px solid ${gray[200]}`, backgroundColor: "#fff", fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit} disabled={adjust.isPending}
-            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 18px", borderRadius: "8px", border: "none", backgroundColor: green[600], fontSize: "13px", fontWeight: 600, color: "#fff", cursor: adjust.isPending ? "not-allowed" : "pointer", opacity: adjust.isPending ? 0.7 : 1 }}
-          >
-            {adjust.isPending && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
-            Apply Adjustment
           </button>
         </div>
       </div>
@@ -714,7 +598,7 @@ const InventoryPage = () => {
         <EditBatchModal batch={editBatch} medicineName={getMedicineName(editBatch.medicine)} onClose={() => setEditBatch(null)} />
       )}
       {adjustBatch && (
-        <AdjustModal batch={adjustBatch} medicineName={getMedicineName(adjustBatch.medicine)} onClose={() => setAdjustBatch(null)} />
+        <AdjustStockForm batch={adjustBatch} medicineName={getMedicineName(adjustBatch.medicine)} onClose={() => setAdjustBatch(null)} />
       )}
       {viewBatch && (
         <MovementsDrawer batch={viewBatch} medicineName={getMedicineName(viewBatch.medicine)} onClose={() => setViewBatch(null)} />

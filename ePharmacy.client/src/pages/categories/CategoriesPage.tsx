@@ -7,26 +7,10 @@ import {
   useDeleteCategory,
 } from "@/hooks/useCategories"
 import { Pagination } from "@/components/ui/pagination"
+import { gray, green, red, adminInputStyle as inputStyle } from "@/lib/adminTokens"
 import type { Category, CreateCategoryRequest } from "@/types/category"
 
 const PAGE_SIZE = 10
-
-// ── design tokens ─────────────────────────────────────────────────────────────
-const green = { 50: "#ecfdf5", 100: "#d1fae5", 600: "#059669", 700: "#047857", 800: "#065f46" }
-const gray  = { 50: "#f9fafb", 100: "#f3f4f6", 200: "#e5e7eb", 400: "#9ca3af", 500: "#6b7280", 700: "#374151", 900: "#111827" }
-const red   = { 50: "#fef2f2", 100: "#fee2e2", 600: "#dc2626", 700: "#b91c1c" }
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  border: `1px solid ${gray[200]}`,
-  borderRadius: "8px",
-  fontSize: "13px",
-  color: gray[900],
-  outline: "none",
-  boxSizing: "border-box",
-  backgroundColor: "#ffffff",
-}
 
 // ── modal ─────────────────────────────────────────────────────────────────────
 interface ModalProps {

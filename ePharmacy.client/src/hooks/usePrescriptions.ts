@@ -1,0 +1,61 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { prescriptionsApi } from "@/api/prescriptions"
+import type { PrescriptionStatus } from "@/types/prescription"
+
+export const PRESCRIPTIONS_KEY = ["prescriptions"] as const
+
+export const usePrescriptions = (params?: { status?: PrescriptionStatus; page?: number }) =>
+  useQuery({
+    queryKey: [...PRESCRIPTIONS_KEY, params],
+    queryFn: () => prescriptionsApi.getAll(params),
+  })
+
+/** All matching prescriptions, unpaginated — for stats/summaries across the full history. */
+export const useAllPrescriptions = (params?: { status?: PrescriptionStatus }) =>
+  useQuery({
+    queryKey: [...PRESCRIPTIONS_KEY, "all", params],
+    queryFn: () => prescriptionsApi.getAllUnpaginated(params),
+  })
+
+export const usePrescriptionDetail = (id: string | null) =>
+  useQuery({
+    queryKey: [...PRESCRIPTIONS_KEY, id],
+    queryFn: () => prescriptionsApi.getById(id!),
+    enabled: !!id,
+  })
+
+export const useUploadPrescription = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => prescriptionsApi.upload(file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: PRESCRIPTIONS_KEY }),
+  })
+}
+
+export const useApprovePrescription = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, items, notes }: {
+      id: string
+      items?: { medicine: string; approved_quantity: number }[]
+      notes?: string
+    }) => prescriptionsApi.approve(id, { items, notes }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PRESCRIPTIONS_KEY })
+      // Dashboard/sidebar "pending prescriptions" badge is sourced from reports
+      qc.invalidateQueries({ queryKey: ["reports"] })
+    },
+  })
+}
+
+export const useRejectPrescription = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason, notes }: { id: string; reason: string; notes?: string }) =>
+      prescriptionsApi.reject(id, { reason, notes }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PRESCRIPTIONS_KEY })
+      qc.invalidateQueries({ queryKey: ["reports"] })
+    },
+  })
+}

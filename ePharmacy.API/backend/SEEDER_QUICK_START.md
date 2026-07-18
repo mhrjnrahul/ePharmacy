@@ -1,4 +1,4 @@
-# ePharmacy Database Seeder - Quick Reference
+# Ausadi Database Seeder - Quick Reference
 
 ## What is it?
 
@@ -20,8 +20,8 @@ python manage.py seed_db --users-only
 ## What Gets Created
 
 ✅ **7 Users**
-- 1 Admin (admin@epharmacy.com / admin123)
-- 1 Staff (staff@epharmacy.com / staff123)
+- 1 Admin (admin@ausadi.com / admin123)
+- 1 Staff (staff@ausadi.com / staff123)
 - 5 Customers (random emails / customer123)
 
 ✅ **Catalog**
@@ -50,8 +50,8 @@ python manage.py seed_db --users-only
 
 | Role     | Email                    | Password     |
 |----------|--------------------------|--------------|
-| Admin    | admin@epharmacy.com      | admin123     |
-| Staff    | staff@epharmacy.com      | staff123     |
+| Admin    | admin@ausadi.com         | admin123     |
+| Staff    | staff@ausadi.com         | staff123     |
 | Customer | (randomly generated)     | customer123  |
 
 ## API Testing Examples
@@ -69,7 +69,7 @@ curl -s http://localhost:8000/api/orders/ | jq
 # Get admin token
 curl -X POST http://localhost:8000/api/token/ \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@epharmacy.com","password":"admin123"}'
+  -d '{"email":"admin@ausadi.com","password":"admin123"}'
 
 # Use token in requests
 curl -s http://localhost:8000/api/admin-endpoint/ \

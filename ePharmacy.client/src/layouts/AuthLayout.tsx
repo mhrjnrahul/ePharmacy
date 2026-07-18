@@ -124,7 +124,7 @@ const AuthLayout = () => {
             <div style={{ width: "44px", height: "44px", borderRadius: "12px", backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Pill size={22} color="#ffffff" />
             </div>
-            <span style={{ fontSize: "20px", fontWeight: 700, color: "#ffffff" }}>ePharmacy</span>
+            <span style={{ fontSize: "20px", fontWeight: 700, color: "#ffffff" }}>Ausadi</span>
           </div>
 
           {/* Headline */}

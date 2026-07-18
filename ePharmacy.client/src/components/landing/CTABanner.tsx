@@ -15,7 +15,7 @@ export const CTABanner = () => {
         <p style={{ fontSize: "16px", color: green[100], margin: "0 0 36px", lineHeight: 1.7 }}>
           {isAuthenticated
             ? "Browse our full catalog of genuine medicines and healthcare products."
-            : "Join thousands of customers who trust ePharmacy for their healthcare needs. Register today and get your medicines delivered fast."}
+            : "Join thousands of customers who trust Ausadi for their healthcare needs. Register today and get your medicines delivered fast."}
         </p>
         <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
           {isAuthenticated ? (

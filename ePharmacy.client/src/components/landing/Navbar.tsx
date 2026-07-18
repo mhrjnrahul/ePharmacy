@@ -111,7 +111,7 @@ export const Navbar = () => {
             <div style={{ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: green[600], display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Pill size={18} color="#fff" />
             </div>
-            <span style={{ fontSize: "18px", fontWeight: 700, color: gray[900] }}>ePharmacy</span>
+            <span style={{ fontSize: "18px", fontWeight: 700, color: gray[900] }}>Ausadi</span>
           </Link>
 
           {/* Desktop nav links */}

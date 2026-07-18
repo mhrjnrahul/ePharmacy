@@ -11,7 +11,7 @@ interface PageMetaProps {
  */
 export const PageMeta = ({ title, description }: PageMetaProps) => (
   <>
-    <title>{`${title} | ePharmacy`}</title>
+    <title>{`${title} | Ausadi`}</title>
     {description && <meta name="description" content={description} />}
   </>
 )

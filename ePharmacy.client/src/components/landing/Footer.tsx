@@ -85,7 +85,7 @@ export const Footer = () => {
             <div style={{ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: green[600], display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Pill size={18} color="#fff" />
             </div>
-            <span style={{ fontSize: "18px", fontWeight: 700, color: "#fff" }}>ePharmacy</span>
+            <span style={{ fontSize: "18px", fontWeight: 700, color: "#fff" }}>Ausadi</span>
           </Link>
           <p style={{ fontSize: "13px", color: gray[500], lineHeight: 1.7, margin: "0 0 20px", maxWidth: "280px" }}>
             Nepal's trusted online pharmacy. Genuine medicines, licensed pharmacists, delivered to your door.
@@ -93,7 +93,7 @@ export const Footer = () => {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {[
               { icon: <Phone  size={13} />, text: "+977-01-XXXXXXX"           },
-              { icon: <Mail   size={13} />, text: "support@epharmacy.com.np"  },
+              { icon: <Mail   size={13} />, text: "support@ausadi.com.np"  },
               { icon: <MapPin size={13} />, text: "Kathmandu, Nepal"           },
             ].map(({ icon, text }) => (
               <div key={text} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: gray[500] }}>
@@ -112,7 +112,7 @@ export const Footer = () => {
       {/* Bottom bar */}
       <div className="footer-bottom" style={{ borderTop: "1px solid #1f2937", paddingTop: "24px" }}>
         <p style={{ fontSize: "12px", color: gray[500], margin: 0 }}>
-          © {new Date().getFullYear()} ePharmacy Nepal. All rights reserved.
+          © {new Date().getFullYear()} Ausadi Nepal. All rights reserved.
         </p>
         <p style={{ fontSize: "12px", color: gray[500], margin: 0 }}>
           Licensed Pharmacy · Reg. No. XXXXXXX

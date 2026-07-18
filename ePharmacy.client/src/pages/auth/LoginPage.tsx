@@ -66,7 +66,7 @@ const LoginPage = () => {
           Welcome back
         </h1>
         <p style={{ fontSize: "14px", color: "#6b7280", margin: 0 }}>
-          Sign in to your ePharmacy account
+          Sign in to your Ausadi account
         </p>
       </div>
 

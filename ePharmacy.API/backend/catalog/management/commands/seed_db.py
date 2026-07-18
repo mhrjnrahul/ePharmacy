@@ -130,7 +130,7 @@ class Command(BaseCommand):
     def seed_users(self, fake):
         """Create admin, staff, and customer users."""
         admin = User.objects.create_user(
-            email="admin@epharmacy.com",
+            email="admin@ausadi.com",
             first_name="Admin",
             last_name="User",
             password="admin123",
@@ -138,7 +138,7 @@ class Command(BaseCommand):
         )
 
         staff = User.objects.create_user(
-            email="staff@epharmacy.com",
+            email="staff@ausadi.com",
             first_name="Staff",
             last_name="User",
             password="staff123",

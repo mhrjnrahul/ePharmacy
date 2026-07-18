@@ -1,6 +1,6 @@
 # Database Seeder Documentation
 
-This document explains how to use the database seeder to populate your ePharmacy API with realistic test data.
+This document explains how to use the database seeder to populate your Ausadi API with realistic test data.
 
 ## Overview
 
@@ -67,12 +67,12 @@ python manage.py seed_db --help
 
 ```
 Admin User:
-  Email: admin@epharmacy.com
+  Email: admin@ausadi.com
   Password: admin123
   Role: ADMIN
 
 Staff User:
-  Email: staff@epharmacy.com
+  Email: staff@ausadi.com
   Password: staff123
   Role: STAFF
 
@@ -184,7 +184,7 @@ curl -s http://localhost:8000/api/catalog/manufacturers/{id}/ | jq
 curl -X POST http://localhost:8000/api/token/ \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@epharmacy.com",
+    "email": "admin@ausadi.com",
     "password": "admin123"
   }'
 

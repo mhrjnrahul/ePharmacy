@@ -1,4 +1,4 @@
-# ePharmacy
+# Ausadi
 
 A full-stack online pharmacy management system covering the complete lifecycle of a pharmacy business: catalog management, batch-level inventory with FIFO stock rotation, prescription review, order fulfilment, shipment tracking, payments, and sales analytics — with separate experiences for customers and for pharmacy staff/admins.
 
@@ -20,13 +20,12 @@ The system is split into two independent projects that communicate over a REST A
 - [User Roles & Permissions](#user-roles--permissions)
 - [API Overview](#api-overview)
 - [Getting Started](#getting-started)
-- [Known Limitations](#known-limitations)
 
 ---
 
 ## Overview
 
-ePharmacy models a real pharmacy's day-to-day operations rather than a generic storefront. Medicines are tracked at the **batch** level (not just a single stock count), sales automatically deduct from the batch that expires soonest, every stock change is written to an immutable audit ledger, and prescription-only medicines cannot be purchased until a pharmacist has explicitly reviewed and approved the specific quantities a customer is allowed to buy.
+Ausadi models a real pharmacy's day-to-day operations rather than a generic storefront. Medicines are tracked at the **batch** level (not just a single stock count), sales automatically deduct from the batch that expires soonest, every stock change is written to an immutable audit ledger, and prescription-only medicines cannot be purchased until a pharmacist has explicitly reviewed and approved the specific quantities a customer is allowed to buy.
 
 The application serves three kinds of users through one codebase:
 
@@ -96,7 +95,7 @@ The application serves three kinds of users through one codebase:
 ## Project Structure
 
 ```
-ePharmacy/
+Ausadi/
 ├── ePharmacy.API/
 │   └── backend/
 │       ├── config/            # Django project settings, root URLconf
@@ -196,8 +195,8 @@ The API serves at `http://127.0.0.1:8000/`. Seeding creates demo accounts:
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | `admin@epharmacy.com` | `admin123` |
-| Staff | `staff@epharmacy.com` | `staff123` |
+| Admin | `admin@ausadi.com` | `admin123` |
+| Staff | `staff@ausadi.com` | `staff123` |
 | Customer | (5 randomly generated) | `customer123` |
 
 ### Frontend
@@ -211,10 +210,3 @@ npm run dev
 The app serves at `http://localhost:5173/` and expects the backend to be running at `http://127.0.0.1:8000`.
 
 Other useful scripts: `npm run build` (type-check + production build), `npm run lint`, `npm run preview`.
-
-## Known Limitations
-
-- Development-only configuration: `DEBUG=True`, a hardcoded `SECRET_KEY`, and SQLite as the database — none of this is production-hardened.
-- eSewa credentials point at the public sandbox environment for testing, not a live merchant account.
-- The eSewa success/failure redirect URLs are hardcoded to port `3000`; if running the frontend on Vite's default port `5173`, update these in the backend settings (or run the frontend on port 3000) for the payment flow to redirect correctly.
-- FIFO batch selection does not split a single order line across multiple batches — if no one batch can fully cover a requested quantity, checkout fails even if the total stock across batches would be enough.

@@ -14,10 +14,31 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path("api/auth/", include("users.urls"))
+    path("admin/", admin.site.urls),
+    path("api/auth/", include("users.urls")),
+    path("api/catalog/", include("catalog.urls")),
+    path("api/inventory/", include("inventory.urls")),
+    path("api/prescriptions/", include("prescriptions.urls")),
+    path("api/orders/", include("orders.urls")),
+    path("api/payment/", include("payment.urls")),
+    path("api/shipping/", include("shipment.urls")),
+    path("api/reports/", include("reports.urls")),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
 ]
+
+# Serve uploaded media (prescription images, medicine images) in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

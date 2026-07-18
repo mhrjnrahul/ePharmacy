@@ -1,0 +1,344 @@
+import { useState } from "react"
+import { Plus, Pencil, Trash2, X, Loader2, Truck } from "lucide-react"
+import {
+  useManufacturers,
+  useCreateManufacturer,
+  useUpdateManufacturer,
+  useDeleteManufacturer,
+} from "@/hooks/useManufacturers"
+import { Pagination } from "@/components/ui/pagination"
+import { gray, green, red, adminInputStyle as inputStyle } from "@/lib/adminTokens"
+import type { Manufacturer, CreateManufacturerRequest } from "@/types/manufacturer"
+
+const PAGE_SIZE = 10
+
+// ── modal ─────────────────────────────────────────────────────────────────────
+interface ModalProps {
+  editing: Manufacturer | null
+  onClose: () => void
+}
+
+const ManufacturerModal = ({ editing, onClose }: ModalProps) => {
+  const create = useCreateManufacturer()
+  const update = useUpdateManufacturer()
+  const isPending = create.isPending || update.isPending
+
+  const [form, setForm] = useState<CreateManufacturerRequest>({
+    name:         editing?.name         ?? "",
+    contact_info: editing?.contact_info ?? "",
+    is_active:    editing?.is_active    ?? true,
+  })
+  const [error, setError] = useState("")
+
+  const set = (k: keyof CreateManufacturerRequest, v: string | boolean) =>
+    setForm(f => ({ ...f, [k]: v }))
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) { setError("Name is required."); return }
+    setError("")
+    try {
+      if (editing) await update.mutateAsync({ id: editing.id, data: form })
+      else         await create.mutateAsync(form)
+      onClose()
+    } catch {
+      setError("Something went wrong. Please try again.")
+    }
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+      <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px", width: "100%", maxWidth: "460px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: 600, color: gray[900], margin: 0 }}>
+            {editing ? "Edit Manufacturer" : "Add Manufacturer"}
+          </h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: gray[400], display: "flex", padding: "4px" }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Fields */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+          {/* Name */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Name *</label>
+            <input
+              style={inputStyle}
+              value={form.name}
+              onChange={e => set("name", e.target.value)}
+              placeholder="e.g. Pfizer"
+            />
+          </div>
+
+          {/* Contact info */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Contact Info</label>
+            <textarea
+              style={{ ...inputStyle, minHeight: "96px", resize: "vertical" }}
+              value={form.contact_info}
+              onChange={e => set("contact_info", e.target.value)}
+              placeholder="Address, email, phone number, or any contact details"
+            />
+          </div>
+
+          {/* Is Active */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <input
+              type="checkbox" id="mfr_is_active"
+              checked={form.is_active}
+              onChange={e => set("is_active", e.target.checked)}
+              style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: green[600] }}
+            />
+            <label htmlFor="mfr_is_active" style={{ fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>
+              Active
+            </label>
+          </div>
+
+          {error && (
+            <div style={{ padding: "10px 12px", backgroundColor: red[50], borderRadius: "8px", border: `1px solid ${red[100]}` }}>
+              <p style={{ fontSize: "13px", color: red[700], margin: 0 }}>{error}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: "10px", marginTop: "24px", justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: "8px", border: `1px solid ${gray[200]}`, backgroundColor: "#fff", fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit} disabled={isPending}
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 18px", borderRadius: "8px", border: "none", backgroundColor: green[600], fontSize: "13px", fontWeight: 600, color: "#fff", cursor: isPending ? "not-allowed" : "pointer", opacity: isPending ? 0.7 : 1 }}
+          >
+            {isPending && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
+            {editing ? "Save Changes" : "Add Manufacturer"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── delete modal ──────────────────────────────────────────────────────────────
+interface DeleteModalProps {
+  manufacturer: Manufacturer
+  onConfirm: () => void
+  onClose: () => void
+  isDeleting: boolean
+  error: string
+}
+
+const DeleteModal = ({ manufacturer, onConfirm, onClose, isDeleting, error }: DeleteModalProps) => (
+  <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+    <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px", width: "100%", maxWidth: "400px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+        <h2 style={{ fontSize: "16px", fontWeight: 600, color: gray[900], margin: 0 }}>Delete Manufacturer</h2>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: gray[400], display: "flex", padding: "4px" }}>
+          <X size={18} />
+        </button>
+      </div>
+
+      <p style={{ fontSize: "13px", color: gray[500], margin: "0 0 16px 0", lineHeight: 1.6 }}>
+        Are you sure you want to delete <strong style={{ color: gray[900] }}>{manufacturer.name}</strong>? This action cannot be undone.
+      </p>
+
+      {error && (
+        <div style={{ padding: "10px 12px", backgroundColor: red[50], borderRadius: "8px", border: `1px solid ${red[100]}`, marginBottom: "16px" }}>
+          <p style={{ fontSize: "13px", color: red[700], margin: 0 }}>{error}</p>
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+        <button onClick={onClose} style={{ padding: "8px 16px", borderRadius: "8px", border: `1px solid ${gray[200]}`, backgroundColor: "#fff", fontSize: "13px", fontWeight: 500, color: gray[700], cursor: "pointer" }}>
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm} disabled={isDeleting}
+          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 18px", borderRadius: "8px", border: "none", backgroundColor: red[600], fontSize: "13px", fontWeight: 600, color: "#fff", cursor: isDeleting ? "not-allowed" : "pointer", opacity: isDeleting ? 0.7 : 1 }}
+        >
+          {isDeleting && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+)
+
+// ── page ──────────────────────────────────────────────────────────────────────
+const ManufacturersPage = () => {
+  const [page, setPage] = useState(1)
+  const { data, isLoading, isError } = useManufacturers({ page })
+  const manufacturers = data?.results ?? []
+  const totalCount = data?.count ?? 0
+  const deleteManufacturer = useDeleteManufacturer()
+
+  const [modalOpen,    setModalOpen   ] = useState(false)
+  const [editing,      setEditing     ] = useState<Manufacturer | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Manufacturer | null>(null)
+  const [isDeleting,   setIsDeleting  ] = useState(false)
+  const [deleteError,  setDeleteError ] = useState("")
+
+  const openAdd    = () => { setEditing(null); setModalOpen(true) }
+  const openEdit   = (m: Manufacturer) => { setEditing(m); setModalOpen(true) }
+  const closeModal = () => { setModalOpen(false); setEditing(null) }
+  const openDelete = (m: Manufacturer) => { setDeleteTarget(m); setDeleteError("") }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    setDeleteError("")
+    try {
+      await deleteManufacturer.mutateAsync(deleteTarget.id)
+      setDeleteTarget(null)
+    } catch (err: any) {
+      setDeleteError(
+        err?.response?.data?.detail ?? "Cannot delete this manufacturer. It may still have medicines assigned to it."
+      )
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  if (isLoading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "200px", gap: "10px", color: gray[500] }}>
+      <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
+      <span style={{ fontSize: "14px" }}>Loading manufacturers…</span>
+    </div>
+  )
+
+  if (isError) return (
+    <div style={{ padding: "20px 24px", backgroundColor: red[50], borderRadius: "12px", border: `1px solid ${red[100]}` }}>
+      <p style={{ fontSize: "14px", color: red[700], margin: 0 }}>Failed to load manufacturers. Check your connection and try again.</p>
+    </div>
+  )
+
+  return (
+    <div>
+      {/* Page header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "24px" }}>
+        <div>
+          <h1 style={{ fontSize: "18px", fontWeight: 600, color: gray[900], margin: "0 0 4px 0" }}>Manufacturers</h1>
+          <p style={{ fontSize: "13px", color: gray[500], margin: 0 }}>
+            {totalCount} {totalCount === 1 ? "manufacturer" : "manufacturers"}
+          </p>
+        </div>
+        <button
+          onClick={openAdd}
+          style={{ display: "flex", alignItems: "center", gap: "7px", padding: "8px 16px", borderRadius: "8px", border: "none", backgroundColor: green[600], fontSize: "13px", fontWeight: 600, color: "#fff", cursor: "pointer" }}
+        >
+          <Plus size={14} /> Add Manufacturer
+        </button>
+      </div>
+
+      {/* Empty state */}
+      {manufacturers.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "64px 24px", backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}` }}>
+          <div style={{ width: "48px", height: "48px", borderRadius: "12px", backgroundColor: green[50], display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <Truck size={22} color={green[600]} />
+          </div>
+          <p style={{ fontSize: "15px", fontWeight: 600, color: gray[900], margin: "0 0 6px 0" }}>No manufacturers yet</p>
+          <p style={{ fontSize: "13px", color: gray[500], margin: "0 0 20px 0" }}>Add your first manufacturer to assign to medicines.</p>
+          <button onClick={openAdd} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", backgroundColor: green[600], fontSize: "13px", fontWeight: 600, color: "#fff", cursor: "pointer" }}>
+            <Plus size={14} /> Add Manufacturer
+          </button>
+        </div>
+      ) : (
+        <div style={{ backgroundColor: "#fff", borderRadius: "12px", border: `1px solid ${gray[200]}`, overflowX: "auto" }}>
+          <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ backgroundColor: gray[50], borderBottom: `1px solid ${gray[200]}` }}>
+                {["Name", "Status", "Contact Info", "Created", ""].map(h => (
+                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: gray[500], textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {manufacturers.map((mfr, i) => (
+                <tr
+                  key={mfr.id}
+                  style={{ borderBottom: i < manufacturers.length - 1 ? `1px solid ${gray[100]}` : "none", transition: "background 0.1s" }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = gray[50])}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
+                >
+                  {/* Name */}
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div style={{ width: "30px", height: "30px", borderRadius: "8px", backgroundColor: green[50], display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Truck size={13} color={green[700]} />
+                      </div>
+                      <span style={{ fontSize: "13px", fontWeight: 500, color: gray[900] }}>{mfr.name}</span>
+                    </div>
+                  </td>
+
+                  {/* Status */}
+                  <td style={{ padding: "12px 16px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 500, padding: "3px 10px", borderRadius: "20px", backgroundColor: mfr.is_active ? green[50] : gray[100], color: mfr.is_active ? green[700] : gray[500] }}>
+                      {mfr.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+
+                  {/* Contact info */}
+                  <td style={{ padding: "12px 16px", maxWidth: "320px" }}>
+                    <span style={{ fontSize: "13px", color: gray[500], overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                      {mfr.contact_info || <span style={{ color: gray[400] }}>—</span>}
+                    </span>
+                  </td>
+
+                  {/* Created at */}
+                  <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: "12px", color: gray[400] }}>
+                      {new Date(mfr.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", justifyContent: "flex-end" }}>
+                      <button
+                        onClick={() => openEdit(mfr)} title="Edit"
+                        style={{ padding: "6px", borderRadius: "6px", border: "none", backgroundColor: "transparent", color: gray[400], cursor: "pointer", display: "flex" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = gray[100]; (e.currentTarget as HTMLButtonElement).style.color = gray[700] }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = gray[400] }}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => openDelete(mfr)} title="Delete"
+                        style={{ padding: "6px", borderRadius: "6px", border: "none", backgroundColor: "transparent", color: gray[400], cursor: "pointer", display: "flex" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = red[50]; (e.currentTarget as HTMLButtonElement).style.color = red[600] }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = gray[400] }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Pagination page={page} pageSize={PAGE_SIZE} count={totalCount} onPageChange={setPage} />
+
+      {modalOpen && <ManufacturerModal editing={editing} onClose={closeModal} />}
+
+      {deleteTarget && (
+        <DeleteModal
+          manufacturer={deleteTarget}
+          onConfirm={handleDeleteConfirm}
+          onClose={() => setDeleteTarget(null)}
+          isDeleting={isDeleting}
+          error={deleteError}
+        />
+      )}
+    </div>
+  )
+}
+
+export default ManufacturersPage

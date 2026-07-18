@@ -18,7 +18,7 @@ export const loginUser = async (data: LoginRequest): Promise<LoginResponse> => {
 };
 
 export const registerUser = async (data: RegisterRequest): Promise<void> => {
-  await api.post("/api/auth/register/", data); //ePharmacy123@gmail.com ra ePharmacy123
+  await api.post("/api/auth/register/", data);
 };
 
 export const refreshToken = async (

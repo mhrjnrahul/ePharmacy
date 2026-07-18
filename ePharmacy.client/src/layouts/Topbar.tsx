@@ -28,7 +28,7 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
   const { user } = useAuthStore()
   const alertCount = useAlertCount()
 
-  const title = routeTitles[pathname] ?? "ePharmacy"
+  const title = routeTitles[pathname] ?? "Ausadi"
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 sm:px-6">

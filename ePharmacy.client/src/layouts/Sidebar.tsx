@@ -144,7 +144,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
             <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary">
               <Pill size={14} className="text-primary-foreground" />
             </div>
-            <span className="text-sm font-bold text-sidebar-foreground">ePharmacy</span>
+            <span className="text-sm font-bold text-sidebar-foreground">Ausadi</span>
           </div>
           <button
             onClick={onClose}

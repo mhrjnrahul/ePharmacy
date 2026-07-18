@@ -148,8 +148,8 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "ePharmacy API",
-    "DESCRIPTION": "API documentation for ePharmacy",
+    "TITLE": "Ausadi API",
+    "DESCRIPTION": "API documentation for Ausadi",
     "VERSION": "1.0.0",
 }
 

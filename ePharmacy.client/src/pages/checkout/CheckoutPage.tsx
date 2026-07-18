@@ -76,7 +76,7 @@ const CheckoutPage = () => {
           <div style={{ width: "28px", height: "28px", borderRadius: "8px", backgroundColor: green[600], display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Pill size={14} color="#fff" />
           </div>
-          <span style={{ fontSize: "15px", fontWeight: 700, color: gray[900] }}>ePharmacy Checkout</span>
+          <span style={{ fontSize: "15px", fontWeight: 700, color: gray[900] }}>Ausadi Checkout</span>
         </div>
       </header>
 

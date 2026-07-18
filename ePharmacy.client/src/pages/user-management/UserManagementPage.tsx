@@ -73,7 +73,7 @@ const CreateStaffModal = ({ onClose }: CreateStaffModalProps) => {
 
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <label style={{ fontSize: "13px", fontWeight: 500, color: gray[700] }}>Email *</label>
-            <input type="email" style={inputStyle} value={form.email} onChange={e => set("email", e.target.value)} placeholder="staff@epharmacy.com" />
+            <input type="email" style={inputStyle} value={form.email} onChange={e => set("email", e.target.value)} placeholder="staff@ausadi.com" />
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>

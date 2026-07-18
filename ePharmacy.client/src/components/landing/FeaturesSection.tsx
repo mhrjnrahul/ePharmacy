@@ -23,7 +23,7 @@ export const FeaturesSection = () => (
 
       <div style={{ textAlign: "center", marginBottom: "56px" }}>
         <h2 style={{ fontSize: "36px", fontWeight: 700, color: gray[900], margin: "0 0 12px" }}>
-          Why Choose ePharmacy?
+          Why Choose Ausadi?
         </h2>
         <p style={{ fontSize: "16px", color: gray[500], margin: "0 auto", maxWidth: "520px" }}>
           We combine technology with healthcare expertise to give you the best pharmacy experience in Nepal.

@@ -181,4 +181,20 @@ class MedicineRelationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "A medicine cannot have a relation with itself."
             )
+
+        # Frequently-bought-together relations are owned by the recommendation
+        # engine — their weights are recomputed from sales history by the
+        # rebuild job (update_relation_weights), which writes them directly via
+        # update_or_create and bypasses this serializer. Only side-effect
+        # companions are set by hand, so reject any attempt to create/edit an
+        # FBT relation through the API. (Staff manage these read-only in the UI.)
+        relation_type = attrs.get(
+            "relation_type",
+            getattr(self.instance, "relation_type", None),
+        )
+        if relation_type == MedicineRelation.RelationType.FREQUENTLY_BOUGHT_TOGETHER:
+            raise serializers.ValidationError(
+                "Frequently-bought-together relations are generated automatically "
+                "from sales history and can't be added or edited manually."
+            )
         return attrs

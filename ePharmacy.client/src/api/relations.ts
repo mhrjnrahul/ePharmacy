@@ -1,10 +1,22 @@
 import { api } from "./axios"
 import type { MedicineRelation, CreateRelationRequest } from "@/types/relation"
+import type { Paginated } from "@/types/pagination"
+import { fetchAllPages } from "./pagination"
 
 export const relationsApi = {
-  // Relations where the given medicine is the "from" side.
+  // Relations where the given medicine is the "from" side. The backend paginates
+  // this list endpoint (default PageNumberPagination), but the manage-relations
+  // modal shows every relation at once with no pager — so we flatten all pages
+  // into a single array. A medicine can easily have >10 relations once the
+  // frequently-bought-together weights are generated.
   getForMedicine: (medicineId: string) =>
-    api.get<MedicineRelation[]>(`/api/catalog/medicines/${medicineId}/relations/`).then(r => r.data),
+    fetchAllPages(page =>
+      api
+        .get<Paginated<MedicineRelation>>(`/api/catalog/medicines/${medicineId}/relations/`, {
+          params: { page },
+        })
+        .then(r => r.data),
+    ),
 
   create: (medicineId: string, data: CreateRelationRequest) =>
     api.post<MedicineRelation>(`/api/catalog/medicines/${medicineId}/relations/`, data).then(r => r.data),

@@ -11,7 +11,7 @@ import { Pagination } from "@/components/ui/pagination"
 import { toast } from "@/store/toastStore"
 import { mediaUrl } from "@/lib/apiUrl"
 import type { MedicineListItem, Medicine, CreateMedicineRequest, DosageForm, MedicineListParams } from "@/types/medicine"
-import type { RelationType, MedicineRelation } from "@/types/relation"
+import type { MedicineRelation } from "@/types/relation"
 import { gray, green, red, amber, adminInputStyle as inputStyle } from "@/lib/adminTokens"
 
 const PAGE_SIZE = 10
@@ -280,10 +280,22 @@ const DeactivateModal = ({ medicine, onConfirm, onClose, isDeleting, error }: De
 )
 
 // ── relations modal ───────────────────────────────────────────────────────────
-const RELATION_TYPES: { value: RelationType; label: string }[] = [
-  { value: "side_effect_companion",      label: "Side effect companion"      },
-  { value: "frequently_bought_together", label: "Frequently bought together" },
+// Pharmacists set clinical strength in plain language; each level maps to the
+// numeric weight the recommendation engine actually uses — they never see the
+// number. Only side-effect companions are human-set. "Frequently bought
+// together" weights are computed from sales history by the rebuild job.
+const COMPANION_STRENGTHS: { value: number; label: string }[] = [
+  { value: 1.0, label: "Usually needed"    },
+  { value: 0.7, label: "Often recommended" },
+  { value: 0.4, label: "Sometimes helpful" },
 ]
+
+// Existing companion weights are arbitrary floats — snap each to the closest
+// clinical level so the dropdown always resolves to a sensible label.
+const nearestStrength = (weight: number) =>
+  COMPANION_STRENGTHS.reduce((best, s) =>
+    Math.abs(s.value - weight) < Math.abs(best.value - weight) ? s : best
+  ).value
 
 const RelationsModal = ({ medicine, onClose }: { medicine: MedicineListItem; onClose: () => void }) => {
   const { data: relations = [], isLoading } = useMedicineRelations(medicine.id)
@@ -293,27 +305,36 @@ const RelationsModal = ({ medicine, onClose }: { medicine: MedicineListItem; onC
   const deleteRelation = useDeleteRelation(medicine.id)
 
   const [toMedicine, setToMedicine] = useState("")
-  const [relationType, setRelationType] = useState<RelationType>("frequently_bought_together")
-  const [weight, setWeight] = useState(1)
+  const [strength, setStrength] = useState(COMPANION_STRENGTHS[0].value)
   const [error, setError] = useState("")
 
+  // Companion relations are pharmacist-managed; frequently-bought-together
+  // relations are algorithm-owned and shown read-only (see rebuild job).
+  const companionRelations = relations.filter(r => r.relation_type === "side_effect_companion")
+  const fbtRelations = relations.filter(r => r.relation_type === "frequently_bought_together")
   const candidateMedicines = allMedicines.filter(m => m.id !== medicine.id)
 
   const handleAdd = async () => {
     if (!toMedicine) { setError("Pick a medicine."); return }
     setError("")
     try {
-      // from_medicine is required by the serializer's own validation even
-      // though the backend also injects it from the URL on save.
-      await createRelation.mutateAsync({ from_medicine: medicine.id, to_medicine: toMedicine, relation_type: relationType, weight })
+      // Only companion relations can be added by hand — from_medicine is
+      // required by the serializer's own validation even though the backend
+      // also injects it from the URL on save.
+      await createRelation.mutateAsync({
+        from_medicine: medicine.id,
+        to_medicine: toMedicine,
+        relation_type: "side_effect_companion",
+        weight: strength,
+      })
       setToMedicine("")
-      setWeight(1)
+      setStrength(COMPANION_STRENGTHS[0].value)
     } catch (err: any) {
-      setError(err?.response?.data?.detail ?? err?.response?.data?.non_field_errors?.[0] ?? "Could not add this relation.")
+      setError(err?.response?.data?.detail ?? err?.response?.data?.non_field_errors?.[0] ?? "Could not add this companion medicine.")
     }
   }
 
-  const handleWeightChange = async (rel: MedicineRelation, newWeight: number) => {
+  const handleStrengthChange = async (rel: MedicineRelation, newWeight: number) => {
     try {
       // A partial PATCH with only {weight} 500s server-side (the serializer's
       // validate() unconditionally compares from_medicine/to_medicine), so
@@ -323,7 +344,7 @@ const RelationsModal = ({ medicine, onClose }: { medicine: MedicineListItem; onC
         data: { from_medicine: rel.from_medicine, to_medicine: rel.to_medicine, relation_type: rel.relation_type, weight: newWeight },
       })
     } catch {
-      toast.error("Could not save that weight. Please try again.")
+      toast.error("Could not save that change. Please try again.")
     }
   }
 
@@ -331,7 +352,7 @@ const RelationsModal = ({ medicine, onClose }: { medicine: MedicineListItem; onC
     try {
       await deleteRelation.mutateAsync(id)
     } catch {
-      toast.error("Could not remove that relation. Please try again.")
+      toast.error("Could not remove that companion medicine. Please try again.")
     }
   }
 
@@ -340,97 +361,108 @@ const RelationsModal = ({ medicine, onClose }: { medicine: MedicineListItem; onC
       <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px", width: "100%", maxWidth: "560px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)", maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
           <h2 style={{ fontSize: "16px", fontWeight: 600, color: gray[900], margin: 0 }}>
-            Relations for {medicine.name} {medicine.strength}
+            Related medicines for {medicine.name} {medicine.strength}
           </h2>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: gray[400], display: "flex", padding: "4px" }}>
             <X size={18} />
           </button>
         </div>
         <p style={{ fontSize: "12px", color: gray[400], margin: "0 0 20px 0", lineHeight: 1.5 }}>
-          Feeds the recommendation engine directly — "frequently bought together" pairs are usually
-          rebuilt automatically from order history, but you can seed or correct one here. "Side effect
-          companion" is always set manually (e.g. omeprazole alongside ibuprofen).
+          Add companion medicines a pharmacist would recommend alongside this one — for example,
+          omeprazole with ibuprofen to protect the stomach. "Frequently bought together" pairs are
+          learned automatically from sales history and can't be edited here.
         </p>
 
-        {/* Existing relations */}
         {isLoading ? (
           <div style={{ display: "flex", alignItems: "center", gap: "8px", color: gray[400], fontSize: "13px", padding: "12px 0" }}>
             <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Loading…
           </div>
-        ) : relations.length === 0 ? (
-          <p style={{ fontSize: "13px", color: gray[400], margin: "0 0 16px 0" }}>No relations recorded yet.</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
-            {relations.map(rel => (
-              <div key={rel.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", backgroundColor: gray[50], borderRadius: "8px", border: `1px solid ${gray[200]}` }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: "13px", fontWeight: 500, color: gray[900], margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    → {rel.to_medicine_name}
-                  </p>
-                  <p style={{ fontSize: "11px", color: gray[400], margin: 0 }}>
-                    {RELATION_TYPES.find(t => t.value === rel.relation_type)?.label ?? rel.relation_type}
-                  </p>
+          <>
+            {/* Companion medicines — pharmacist-managed */}
+            <p style={{ fontSize: "12px", fontWeight: 600, color: gray[700], margin: "0 0 8px 0" }}>Companion medicines</p>
+            {companionRelations.length === 0 ? (
+              <p style={{ fontSize: "13px", color: gray[400], margin: "0 0 16px 0" }}>No companion medicines added yet.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
+                {companionRelations.map(rel => (
+                  <div key={rel.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", backgroundColor: gray[50], borderRadius: "8px", border: `1px solid ${gray[200]}` }}>
+                    <p style={{ flex: 1, minWidth: 0, fontSize: "13px", fontWeight: 500, color: gray[900], margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      → {rel.to_medicine_name}
+                    </p>
+                    <select
+                      // Driven by server state — the value follows rel.weight
+                      // (snapped to the nearest level), so a refetch after a
+                      // save always reflects what actually persisted.
+                      value={nearestStrength(rel.weight)}
+                      onChange={e => handleStrengthChange(rel, Number(e.target.value))}
+                      disabled={updateRelation.isPending}
+                      title="How strongly this companion is recommended"
+                      style={{ width: "150px", padding: "5px 8px", border: `1px solid ${gray[200]}`, borderRadius: "6px", fontSize: "12px", color: gray[900], cursor: "pointer", backgroundColor: "#fff" }}
+                    >
+                      {COMPANION_STRENGTHS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                    <button
+                      onClick={() => handleDelete(rel.id)}
+                      disabled={deleteRelation.isPending}
+                      title="Remove companion medicine"
+                      style={{ padding: "6px", borderRadius: "6px", border: "none", backgroundColor: "transparent", color: gray[400], cursor: "pointer", display: "flex" }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Frequently bought together — algorithm-owned, read-only */}
+            {fbtRelations.length > 0 && (
+              <div style={{ marginBottom: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "0 0 8px 0" }}>
+                  <p style={{ fontSize: "12px", fontWeight: 600, color: gray[700], margin: 0 }}>Frequently bought together</p>
+                  <span style={{ fontSize: "10px", fontWeight: 600, color: green[600], backgroundColor: "rgba(22,163,74,0.1)", padding: "2px 6px", borderRadius: "999px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                    Auto
+                  </span>
                 </div>
-                <input
-                  // Keying on the server-persisted weight forces this
-                  // uncontrolled input to remount (and pick up the new
-                  // defaultValue) whenever the list refetches with a
-                  // different value — otherwise a failed/concurrent update
-                  // would leave it silently showing stale local input.
-                  key={`${rel.id}-${rel.weight}`}
-                  type="number" min={0} max={1} step={0.05}
-                  defaultValue={rel.weight}
-                  onBlur={e => {
-                    const v = Math.max(0, Math.min(1, Number(e.target.value) || 0))
-                    if (v !== rel.weight) handleWeightChange(rel, v)
-                  }}
-                  title="Weight (0.0 – 1.0)"
-                  style={{ width: "64px", padding: "5px 8px", border: `1px solid ${gray[200]}`, borderRadius: "6px", fontSize: "12px", color: gray[900] }}
-                />
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {fbtRelations.map(rel => (
+                    <div key={rel.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", backgroundColor: gray[50], borderRadius: "8px", border: `1px solid ${gray[200]}` }}>
+                      <p style={{ flex: 1, minWidth: 0, fontSize: "13px", fontWeight: 500, color: gray[900], margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        → {rel.to_medicine_name}
+                      </p>
+                      <span style={{ fontSize: "11px", color: gray[400] }}>from sales history</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add companion medicine */}
+            <div style={{ borderTop: `1px solid ${gray[200]}`, paddingTop: "16px" }}>
+              <p style={{ fontSize: "13px", fontWeight: 500, color: gray[700], margin: "0 0 10px 0" }}>Add companion medicine</p>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <select style={{ ...inputStyle, flex: "1 1 200px", cursor: "pointer" }} value={toMedicine} onChange={e => setToMedicine(e.target.value)}>
+                  <option value="">Select medicine…</option>
+                  {candidateMedicines.map(m => <option key={m.id} value={m.id}>{m.name} — {m.strength}</option>)}
+                </select>
+                <select style={{ ...inputStyle, flex: "1 1 160px", cursor: "pointer" }} value={strength} onChange={e => setStrength(Number(e.target.value))} title="How strongly this companion is recommended">
+                  {COMPANION_STRENGTHS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
                 <button
-                  onClick={() => handleDelete(rel.id)}
-                  disabled={deleteRelation.isPending}
-                  title="Remove relation"
-                  style={{ padding: "6px", borderRadius: "6px", border: "none", backgroundColor: "transparent", color: gray[400], cursor: "pointer", display: "flex" }}
+                  onClick={handleAdd}
+                  disabled={createRelation.isPending}
+                  style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", border: "none", backgroundColor: green[600], fontSize: "13px", fontWeight: 600, color: "#fff", cursor: createRelation.isPending ? "not-allowed" : "pointer", opacity: createRelation.isPending ? 0.7 : 1 }}
                 >
-                  <Trash2 size={14} />
+                  {createRelation.isPending && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
+                  Add
                 </button>
               </div>
-            ))}
-          </div>
+              {error && (
+                <p style={{ fontSize: "12px", color: red[700], margin: "10px 0 0 0" }}>{error}</p>
+              )}
+            </div>
+          </>
         )}
-
-        {/* Add new relation */}
-        <div style={{ borderTop: `1px solid ${gray[200]}`, paddingTop: "16px" }}>
-          <p style={{ fontSize: "13px", fontWeight: 500, color: gray[700], margin: "0 0 10px 0" }}>Add relation</p>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <select style={{ ...inputStyle, flex: "1 1 200px", cursor: "pointer" }} value={toMedicine} onChange={e => setToMedicine(e.target.value)}>
-              <option value="">Select medicine…</option>
-              {candidateMedicines.map(m => <option key={m.id} value={m.id}>{m.name} — {m.strength}</option>)}
-            </select>
-            <select style={{ ...inputStyle, flex: "1 1 180px", cursor: "pointer" }} value={relationType} onChange={e => setRelationType(e.target.value as RelationType)}>
-              {RELATION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-            <input
-              type="number" min={0} max={1} step={0.05}
-              style={{ ...inputStyle, width: "72px" }}
-              value={weight}
-              onChange={e => setWeight(Math.max(0, Math.min(1, Number(e.target.value) || 0)))}
-              title="Weight (0.0 – 1.0)"
-            />
-            <button
-              onClick={handleAdd}
-              disabled={createRelation.isPending}
-              style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", border: "none", backgroundColor: green[600], fontSize: "13px", fontWeight: 600, color: "#fff", cursor: createRelation.isPending ? "not-allowed" : "pointer", opacity: createRelation.isPending ? 0.7 : 1 }}
-            >
-              {createRelation.isPending && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
-              Add
-            </button>
-          </div>
-          {error && (
-            <p style={{ fontSize: "12px", color: red[700], margin: "10px 0 0 0" }}>{error}</p>
-          )}
-        </div>
       </div>
     </div>
   )

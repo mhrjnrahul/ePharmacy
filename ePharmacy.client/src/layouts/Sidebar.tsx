@@ -192,7 +192,14 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                             <Icon size={14} className="shrink-0" />
                             <span className="flex-1">{label}</span>
                             {count > 0 && (
-                              <span className="tnum rounded-full bg-warning-soft px-1.5 text-[11px] font-semibold text-warning">
+                              <span className={cn(
+                                "tnum rounded-full px-1.5 text-[11px] font-semibold",
+                                // Stock alerts read as a warning/danger notification → red;
+                                // pending orders / prescriptions stay amber (informational).
+                                badge === "alerts"
+                                  ? "bg-destructive-soft text-destructive"
+                                  : "bg-warning-soft text-warning",
+                              )}>
                                 {count}
                               </span>
                             )}
